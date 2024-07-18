@@ -67,7 +67,6 @@ class WebService::GrowthBook {
                 $features->{$feature->id} = $feature;
             }
             else {
-                # TODO remove value type
                 $features->{$feature_id} = WebService::GrowthBook::Feature->new(id => $feature_id, default_value => $feature->{defaultValue});
             }
         }
