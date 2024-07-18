@@ -45,7 +45,7 @@ WebService::GrowthBook - sdk of growthbook
 # singletons
 
 class WebService::GrowthBook {
-    field $url :param //= 'https://cdn.growthbook.io/api';
+    field $url :param //= 'https://cdn.growthbook.io';
     field $client_key :param;
     field $features :param //= {};
     field $cache_ttl :param //= 60;

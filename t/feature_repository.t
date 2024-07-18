@@ -30,7 +30,7 @@ for my $status ( 400, 401, 402 ) {
 is_deeply(
     \@args,
     [
-        'http://example.com/features/akey',
+        'http://example.com/api/features/akey',
         {
             'headers' => {
                 'Content-Type'  => 'application/json'

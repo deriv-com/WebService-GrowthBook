@@ -77,7 +77,7 @@ class WebService::GrowthBook::FeatureRepository {
     }
 
     method _get_features_url($api_host, $client_key){
-        return "$api_host/features/$client_key";
+        return "$api_host/api/features/$client_key";
     }
 }
 
