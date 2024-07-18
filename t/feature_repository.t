@@ -22,7 +22,7 @@ my $repo =
   WebService::GrowthBook::FeatureRepository->new( client_key => 'key' );
 for my $status ( 400, 401, 402 ) {
     $get_result = { status => 400 };
-    my $result = $repo->load_features( "http://example.com", "a key" );
+    my $result = $repo->load_features( "http://example.com", "akey" );
     ok( !defined($result), "get undef since status is greater than 400" );
     $log->contains_ok( qr/Failed to fetch features, received status code/,
         "log contains status code" );
@@ -30,10 +30,9 @@ for my $status ( 400, 401, 402 ) {
 is_deeply(
     \@args,
     [
-        'http://example.com/features',
+        'http://example.com/api/features/akey',
         {
             'headers' => {
-                'Authorization' => 'Bearer a key',
                 'Content-Type'  => 'application/json'
             }
         }

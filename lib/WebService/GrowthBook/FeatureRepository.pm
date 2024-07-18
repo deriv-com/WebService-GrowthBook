@@ -55,7 +55,7 @@ class WebService::GrowthBook::FeatureRepository {
     
     method _fetch_and_decode($api_host, $client_key){
         try {
-            my $r = $self->_get($self->_get_features_url($api_host), $client_key);
+            my $r = $self->_get($self->_get_features_url($api_host, $client_key));
             if($r->{status} >= 400){
                 $log->warnf("Failed to fetch features, received status code %d", $r->{status});
                 return;
@@ -68,18 +68,16 @@ class WebService::GrowthBook::FeatureRepository {
         }
         return;
     }
-    method _get($url, $client_key){
-
+    method _get($url){
         my $headers = {
-            'Authorization' => "Bearer $client_key",
             'Content-Type'  => 'application/json',
         };
 
         return  $http->get($url, {headers => $headers});
     }
 
-    method _get_features_url($api_host){
-        return "$api_host/features";
+    method _get_features_url($api_host, $client_key){
+        return "$api_host/api/features/$client_key";
     }
 }
 
