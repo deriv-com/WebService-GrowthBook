@@ -37,6 +37,7 @@ is($instance->get_feature_value('string-feature'), 'A string', 'string-feature v
 is($instance->get_feature_value('number-feature'), 123, 'number-feature value is 123');
 is_deeply($instance->get_feature_value('json-feature'), {"a" => 1,"b" => 2}, 'json-feature value is {"a":1,"b":2}');
 is($instance->get_feature_value('not-exist-feature'), undef, "not-exist-feature value is undef");
+is($instance->get_feature_value('not-exist-feature', 123), 123, "fallback value");
 is($instance->is_on('not-exist-feature'), undef, "not-exist-feature is undef");
 is($instance->is_off('not-exist-feature'), undef, "not-exist-feature is undef");
 is($instance->is_on('string-feature'), undef, "is_on string is undef");

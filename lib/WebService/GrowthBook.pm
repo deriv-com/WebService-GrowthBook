@@ -48,6 +48,7 @@ class WebService::GrowthBook {
     field $url :param //= 'https://cdn.growthbook.io';
     field $client_key :param;
     field $features :param //= {};
+    field $attributes :param :reader :writer //= {};
     field $cache_ttl :param //= 60;
     field $cache //= WebService::GrowthBook::InMemoryFeatureCache->singleton;
     method load_features {
@@ -97,9 +98,9 @@ class WebService::GrowthBook {
             value => $default_value);
     }
     
-    method get_feature_value($feature_name){
+    method get_feature_value($feature_name, $fallback = undef){
         my $result = $self->eval_feature($feature_name);
-        return undef unless defined($result);
+        return $fallback unless defined($result);
         return $result->value;
     }
 }
