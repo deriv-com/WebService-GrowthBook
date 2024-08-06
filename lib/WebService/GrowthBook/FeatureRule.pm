@@ -10,7 +10,7 @@ class WebService::GrowthBook::FeatureRule {
     field $variations :param //= undef;
     field $weights :param //= undef;
     field $coverage :param //= undef;
-    field $condition :param //= undef;
+    field $condition :param :reader //= undef;
     field $namespace :param //= undef;
     field $fore :param //= undef;
     field $hash_atrribute :param //= 'id';
