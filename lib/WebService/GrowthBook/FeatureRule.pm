@@ -33,4 +33,31 @@ class WebService::GrowthBook::FeatureRule {
             $fallback_attribute = undef;
         }
     }
+    
+    method to_hash {
+        return {
+            id => $id,
+            key => $key,
+            variations => $variations,
+            weights => $weights,
+            coverage => $coverage,
+            condition => $condition,
+            namespace => $namespace,
+            fore => $fore,
+            hash_atrribute => $hash_atrribute,
+            fallback_attribute => $fallback_attribute,
+            hashVersion => $hashVersion,
+            range => $range,
+            ranges => $ranges,
+            meta => $meta,
+            filters => $filters,
+            seed => $seed,
+            name => $name,
+            phase => $phase,
+            disable_sticky_bucketing => $disable_sticky_bucketing,
+            bucketVersion => $bucketVersion,
+            minBucketVersion => $minBucketVersion,
+            parentConditions => $parentConditions,
+        };
+    }
 }
