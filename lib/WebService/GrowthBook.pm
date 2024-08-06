@@ -68,7 +68,7 @@ class WebService::GrowthBook {
                 $features->{$feature->id} = $feature;
             }
             else {
-                $features->{$feature_id} = WebService::GrowthBook::Feature->new(id => $feature_id, default_value => $feature->{defaultValue});
+                $features->{$feature_id} = WebService::GrowthBook::Feature->new(id => $feature_id, default_value => $feature->{defaultValue}, rules => $feature->{rules});
             }
         }
     }
@@ -85,19 +85,48 @@ class WebService::GrowthBook {
         return $result->off;
     }
     
-    method eval_feature($feature_name){
+    # I don't know why it is called stack. In fact it is a hash/dict
+    method $eval_feature($feature_name, $stack){
+        $log->debug("Evaluating feature $feature_name");
         if(!exists($features->{$feature_name})){
-            $log->errorf("No such feature: %s", $feature_name);
+            $log->debugf("No such feature: %s", $feature_name);
             return undef;
         }
+
+        if ($stack->{$feature_name}) {
+            $log->warnf("Cyclic prerequisite detected, stack: %s", $stack);
+            return undef;
+        }
+        
+        $stack->{$feature_name} = 1;
+
         my $feature = $features->{$feature_name};
+=pod
+        for my $rule (@{$feature->rules}){
+            if($rule->condition){
+                my $condition = $rule->condition;
+                my $result = $self->eval_condition($condition, $stack);
+                if($result){
+                    return WebService::GrowthBook::FeatureResult->new(
+                        id => $feature_name,
+                        value => $rule->value,
+                        on => 1,
+                        off => 0);
+                }
+            }
+        }
+=cut
+
         my $default_value = $feature->default_value;
     
         return WebService::GrowthBook::FeatureResult->new(
             id => $feature_name,
             value => $default_value);
     }
-    
+     method eval_feature($feature_name){
+        return $self->$eval_feature($feature_name, {});
+    }
+   
     method get_feature_value($feature_name, $fallback = undef){
         my $result = $self->eval_feature($feature_name);
         return $fallback unless defined($result);

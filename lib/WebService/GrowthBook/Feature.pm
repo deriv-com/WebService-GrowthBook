@@ -3,12 +3,28 @@ use strict;
 use warnings;
 no indirect;
 use Object::Pad;
+use WebService::GrowthBook::FeatureRule;
 
 ## VERSION
 
 class WebService::GrowthBook::Feature{
     field $id :param :reader;
     field $default_value :param :reader;
+    field $rules :param :reader //= undef;
+
+    sub BUILDARGS{
+        my $class = shift;
+        my %args = @_;
+        if($args{rules}){
+            my $rules = $args{rules};
+            my @rules_objects;
+            for my $rule (@$rules){
+                push @rules_objects, WebService::GrowthBook::FeatureRule->new(%$rule);
+            }
+            $args{rules} = \@rules_objects;
+        }
+        return %args;
+    }
 }
 
 1;
