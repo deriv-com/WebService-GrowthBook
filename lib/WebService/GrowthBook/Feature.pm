@@ -23,6 +23,9 @@ class WebService::GrowthBook::Feature{
             }
             $args{rules} = \@rules_objects;
         }
+        else{
+            $args{rules} = [];
+        }
         return %args;
     }
 }

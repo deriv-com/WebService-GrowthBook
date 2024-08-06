@@ -5,28 +5,28 @@ no indirect;
 use Object::Pad;
 
 class WebService::GrowthBook::FeatureRule {
-    field $id :param //= undef;
-    field $key :param //= '';
-    field $variations :param //= undef;
-    field $weights :param //= undef;
-    field $coverage :param //= undef;
+    field $id :param :reader //= undef;
+    field $key :param :reader //= '';
+    field $variations :param :reader //= undef;
+    field $weights :param :reader //= undef;
+    field $coverage :param :reader //= undef;
     field $condition :param :reader //= undef;
-    field $namespace :param //= undef;
-    field $fore :param //= undef;
-    field $hash_atrribute :param //= 'id';
+    field $namespace :param :reader //= undef;
+    field $fore :param :reader //= undef;
+    field $hash_atrribute :param :reader //= 'id';
     field $fallback_attribute :param :reader //= undef;
-    field $hashVersion :param //= 1;
-    field $range :param //= undef;
-    field $ranges :param //= undef;
-    field $meta :param //= undef;
-    field $filters :param //= undef;
-    field $seed :param //= undef;
-    field $name :param //= undef;
-    field $phase :param //= undef;
-    field $disable_sticky_bucketing :param //= undef;
-    field $bucketVersion :param //= 0;
-    field $minBucketVersion :param //= 0;
-    field $parentConditions :param //= undef;
+    field $hashVersion :param :reader //= 1;
+    field $range :param :reader //= undef;
+    field $ranges :param :reader //= undef;
+    field $meta :param :reader //= undef;
+    field $filters :param :reader //= undef;
+    field $seed :param :reader //= undef;
+    field $name :param :reader //= undef;
+    field $phase :param :reader //= undef;
+    field $disable_sticky_bucketing :param :reader //= undef;
+    field $bucketVersion :param :reader //= 0;
+    field $minBucketVersion :param :reader //= 0;
+    field $parentConditions :param :reader //= undef;
 
     ADJUST {
         if($disable_sticky_bucketing){

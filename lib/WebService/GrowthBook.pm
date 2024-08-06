@@ -101,22 +101,14 @@ class WebService::GrowthBook {
         $stack->{$feature_name} = 1;
 
         my $feature = $features->{$feature_name};
-=pod        
         for my $rule (@{$feature->rules}){
-            $log->debug("Evaluating feature %s, rule %s", $feature_name, $rule.to_hash());
-            if($rule->condition){
-                my $condition = $rule->condition;
-                my $result = $self->eval_condition($condition, $stack);
-                if($result){
-                    return WebService::GrowthBook::FeatureResult->new(
-                        id => $feature_name,
-                        value => $rule->value,
-                        on => 1,
-                        off => 0);
-                }
+            $log->debugf("Evaluating feature %s, rule %s", $feature_name, $rule.to_hash());
+            if ($rule->parentConditions){
+                #my $rereq_res = $self->eval_prereqs($rule->parentConditions, stack);
             }
+
+
         }
-=cut
         my $default_value = $feature->default_value;
     
         return WebService::GrowthBook::FeatureResult->new(
