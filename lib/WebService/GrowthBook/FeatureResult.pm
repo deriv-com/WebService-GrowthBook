@@ -11,6 +11,7 @@ use JSON::MaybeXS;
 class WebService::GrowthBook::FeatureResult{
     field $id :param :reader;
     field $value :param :reader;
+    field $source :param :reader //= '';
     method on{
         if (JSON::MaybeXS::is_bool($value)){
             return $value ? 1 : 0;

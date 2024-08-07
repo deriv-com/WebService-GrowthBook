@@ -13,6 +13,7 @@ use WebService::GrowthBook::FeatureRepository;
 use WebService::GrowthBook::Feature;
 use WebService::GrowthBook::FeatureResult;
 use WebService::GrowthBook::InMemoryFeatureCache;
+use WebService::GrowthBook::Eval qw(eval_condition);
 
 our $VERSION = '0.003';
 
@@ -90,12 +91,12 @@ class WebService::GrowthBook {
         $log->debug("Evaluating feature $feature_name");
         if(!exists($features->{$feature_name})){
             $log->debugf("No such feature: %s", $feature_name);
-            return undef;
+            return WebService::GrowthBook::FeatureResult->new(id => $feature_name, value => undef, source => "unknownFeature");
         }
 
         if ($stack->{$feature_name}) {
             $log->warnf("Cyclic prerequisite detected, stack: %s", $stack);
-            return undef;
+            return WebService::GrowthBook::FeatureResult->new(id => $feature_name, value => undef, source => "cyclicPrerequisite");
         }
         
         $stack->{$feature_name} = 1;
@@ -104,7 +105,18 @@ class WebService::GrowthBook {
         for my $rule (@{$feature->rules}){
             $log->debugf("Evaluating feature %s, rule %s", $feature_name, $rule.to_hash());
             if ($rule->parentConditions){
-                #my $rereq_res = $self->eval_prereqs($rule->parentConditions, stack);
+                my $prereq_res = $self->eval_prereqs($rule->parentConditions, $stack);
+                if ($prereq_res eq "gate") {
+                    $log->debugf("Top-lavel prerequisite failed, return undef, feature %s", $feature_name);
+                    return WebService::GrowthBook::FeatureResult->new(id => $feature_name, value => undef, source => "prerequisite");
+                }
+                elsif ($prereq_res eq "cyclic") {
+                    return WebService::GrowthBook::FeatureResult->new(id => $feature_name, value => undef, source => "cyclicPrerequisite");
+                }
+                elsif ($prereq_res eq "fail") {
+                    $log->debugf("Skip rule becasue of failing prerequisite, feature %s", $feature_name);
+                    continue;
+                }
             }
 
 
@@ -113,15 +125,35 @@ class WebService::GrowthBook {
     
         return WebService::GrowthBook::FeatureResult->new(
             id => $feature_name,
-            value => $default_value);
+            value => $default_value,
+            source => "default" # TODO fix this, maybe not default
+            );
     }
-     method eval_feature($feature_name){
+
+    method eval_prereqs($parent_conditions, $stack){
+        foreach my $parent_condition (@$parent_conditions) {
+            my $parent_res = $self->$eval_feature($parent_condition->{id}, $stack);
+    
+            if ($parent_res->{source} eq "cyclicPrerequisite") {
+                return "cyclic";
+            }
+    
+            if (!eval_condition({ value => $parent_res->{value} }, $parent_condition->{condition})) {
+                if ($parent_condition->{gate}) {
+                    return "gate";
+                }
+                return "fail";
+            }
+        }
+        return "pass";
+    }
+    method eval_feature($feature_name){
         return $self->$eval_feature($feature_name, {});
     }
    
     method get_feature_value($feature_name, $fallback = undef){
         my $result = $self->eval_feature($feature_name);
-        return $fallback unless defined($result);
+        return $fallback unless defined($result->value);
         return $result->value;
     }
 }
