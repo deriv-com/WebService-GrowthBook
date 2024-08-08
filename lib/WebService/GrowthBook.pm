@@ -15,6 +15,7 @@ use WebService::GrowthBook::FeatureResult;
 use WebService::GrowthBook::InMemoryFeatureCache;
 use WebService::GrowthBook::Eval qw(eval_condition);
 use WebService::GrowthBook::Util qw(gbhash in_range);
+use WebService::GrowthBook::Experiment;
 
 our $VERSION = '0.003';
 
@@ -93,7 +94,7 @@ class WebService::GrowthBook {
         $log->debug("Evaluating feature $feature_name");
         if(!exists($features->{$feature_name})){
             $log->debugf("No such feature: %s", $feature_name);
-            return WebService::GrowthBook::FeatureResult->new(id => $feature_name, value => undef, source => "unknownFeature");
+            return WebService::GrowthBook::FeatureResult->new(feature_id => $feature_name, value => undef, source => "unknownFeature");
         }
 
         if ($stack->{$feature_name}) {
@@ -148,20 +149,80 @@ class WebService::GrowthBook {
                 $log->warnf("Skip invalid rule, feature %s", $feature_name);
                 continue;
             }
-            
-            # TODO implement experiment first
+            my $exp = WebService::GrowthBook::Experiment->new(
+                # TODO change $feature_name to $key
+                # TODO change that $ method to _ method
+                key                     => $rule->key || $feature_name,
+                variations              => $rule->variations,
+                coverage                => $rule->coverage,
+                weights                 => $rule->weights,
+                hash_attribute          => $rule->hash_attribute,
+                fallback_attribute      => $rule->fallback_attribute,
+                namespace               => $rule->namespace,
+                hash_version            => $rule->hash_version,
+                meta                    => $rule->meta,
+                ranges                  => $rule->ranges,
+                name                    => $rule->name,
+                phase                   => $rule->phase,
+                seed                    => $rule->seed,
+                filters                 => $rule->filters,
+                condition               => $rule->condition,
+                disable_sticky_bucketing => $rule->disable_sticky_bucketing,
+                bucket_version          => $rule->bucket_version,
+                min_bucket_version      => $rule->min_bucket_version,
+            ); 
+
+            # TODO implement _run first
 
 
         }
         my $default_value = $feature->default_value;
     
         return WebService::GrowthBook::FeatureResult->new(
-            id => $feature_name,
+            feature_id => $feature_name,
             value => $default_value,
             source => "default" # TODO fix this, maybe not default
             );
     }
 
+    method _run($experiment, $feature_id){
+        # 1. If experiment has less than 2 variations, return immediately
+        if (scalar @{$experiment->variations} < 2) {
+            $log->warnf(
+                "Experiment %s has less than 2 variations, skip", $experiment->key
+            );
+            return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+            # TODO implement _get_experiment_result first
+        }
+    }
+
+    method _get_experiment_result($experiment, $variation_id = -1, $hash_used = 0, $feature_id = undef, $bucket = undef, $sticky_bucket_used = 0){ 
+        my $in_experiment = 1;
+        if ($variation_id < 0 || $variation_id > @{$experiment->{variations}} - 1) {
+            $variation_id = 0;
+            $in_experiment = 0;
+        }
+    
+        my $meta;
+        if ($experiment->meta) {
+            $meta = $experiment->meta->[$variation_id];
+        }
+    
+        my ($hash_attribute, $hash_value) = $self->_get_orig_hash_value($experiment->hash_attribute, $experiment->fallback_attribute);
+    
+        return WebService::GrowthBook::FeatureResult->new(
+            feature_id         => $feature_id,
+            in_experiment      => $in_experiment,
+            variation_id       => $variation_id,
+            value              => $experiment->variations->[$variation_id],
+            hash_used          => $hash_used,
+            hash_attribute     => $hash_attribute,
+            hash_value         => $hash_value,
+            meta               => $meta,
+            bucket             => $bucket,
+            sticky_bucket_used => $sticky_bucket_used
+        );
+    }
 
     method _is_included_in_rollout($seed, $hash_attribute, $fallback_attribute, $range, $coverage, $hash_version){
         if (!defined($coverage) && !defined($range)){
