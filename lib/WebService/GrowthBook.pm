@@ -14,6 +14,7 @@ use WebService::GrowthBook::Feature;
 use WebService::GrowthBook::FeatureResult;
 use WebService::GrowthBook::InMemoryFeatureCache;
 use WebService::GrowthBook::Eval qw(eval_condition);
+use WebService::GrowthBook::Util qw(gbhash in_range);
 
 our $VERSION = '0.003';
 
@@ -51,6 +52,7 @@ class WebService::GrowthBook {
     field $features :param //= {};
     field $attributes :param :reader :writer //= {};
     field $cache_ttl :param //= 60;
+    field $user :param //= {};
     field $cache //= WebService::GrowthBook::InMemoryFeatureCache->singleton;
     method load_features {
         my $feature_repository = WebService::GrowthBook::FeatureRepository->new(cache => $cache);
@@ -119,6 +121,36 @@ class WebService::GrowthBook {
                 }
             }
 
+            if ($rule->condition){
+                if (!eval_condition($self->attributes, $rule->condition)){
+                    $log->debugf("Skip rule because of failed condition, feature %s", $feature_name);
+                    continue;
+                }
+            }
+
+            if ($rule->force){
+                if(!$self->is_included_in_rollout($rule->seed || $feature_name,
+                    $rule->hash_attribute,
+                    $rule->fallback_attribute,
+                    $rule->range,
+                    $rule->coverage,
+                    $rule->hash_version
+                )){
+                    $log->debugf(
+                        "Skip rule because user not included in percentage rollout, feature %s",
+                        $feature_name,
+                    );
+                    continue;
+                }
+            }
+
+            if($rule->variations){
+                $log->warnf("Skip invalid rule, feature %s", $feature_name);
+                continue;
+            }
+            
+            # TODO implement experiment first
+
 
         }
         my $default_value = $feature->default_value;
@@ -128,6 +160,65 @@ class WebService::GrowthBook {
             value => $default_value,
             source => "default" # TODO fix this, maybe not default
             );
+    }
+
+
+    method _is_included_in_rollout($seed, $hash_attribute, $fallback_attribute, $range, $coverage, $hash_version){
+        if (!defined($coverage) && !defined($range)){
+            return 1;
+        }
+        my $hash_value;
+        (undef, $hash_value) = $self->_get_hash_value($hash_attribute, $fallback_attribute);
+        if($hash_value eq "") {
+            return 0;
+        }
+
+        my $n = gbhash($seed, $hash_value, $hash_version || 1);
+
+        if (!defined($n)){
+            return 0;
+        }
+
+        if($range){
+            return in_range($n, $range);
+        }
+        elsif($coverage){
+            return $n < $coverage;
+        }
+
+        return 1;
+    }
+
+    method _get_hash_value($attr, $fallback_attr){
+        my $val;
+        ($attr, $val) = $self->_get_orig_hash_value($attr, $fallback_attr);
+        return ($attr, "$val");
+    }
+    
+    method _get_orig_hash_value($attr, $fallback_attr){
+        $attr ||= "id";
+        my $val = "";
+        
+        if (exists $attributes->{$attr}) {
+            $val = $attributes->{$attr} || "";
+        } elsif (exists $user->{$attr}) {
+            $val = $user->{$attr} || "";
+        }
+
+        # If no match, try fallback
+        if ((!$val || $val eq "") && $fallback_attr && $self->{sticky_bucket_service}) {
+            if (exists $attributes->{$fallback_attr}) {
+                $val = $attributes->{$fallback_attr} || "";
+            } elsif (exists $user->{$fallback_attr}) {
+                $val = $user->{$fallback_attr} || "";
+            }
+        
+            if (!$val || $val ne "") {
+                $attr = $fallback_attr;
+            }
+        }
+        
+        return ($attr, $val);
     }
 
     method eval_prereqs($parent_conditions, $stack){

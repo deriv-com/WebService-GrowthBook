@@ -3,7 +3,7 @@ use strict;
 use warnings;
 no indirect;
 use Object::Pad;
-
+# TODO check every class's feild if they are camelCase or snake_case
 class WebService::GrowthBook::FeatureRule {
     field $id :param :reader //= undef;
     field $key :param :reader //= '';
