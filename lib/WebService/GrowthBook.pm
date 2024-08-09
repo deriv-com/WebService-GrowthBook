@@ -317,8 +317,30 @@ class WebService::GrowthBook {
                 };
             }
 
+            # 8. Exclude if condition is false
+            if ($experiment->condition && !$self->_eval_condition($self->attributes, $experiment->condition)) {
+                $log->debugf(
+                    "Skip experiment %s because user failed the condition", $experiment->key
+                );
+                return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+            } 
 
-
+            # 8.05 Exclude if parent conditions are not met
+            if ($experiment->parent_conditions) {
+                my $prereq_res = $self->eval_prereqs($experiment->parent_conditions, {});
+                if ($prereq_res eq "gate" || $prereq_res eq "fail") {
+                    $log->debugf(
+                        "Skip experiment %s because of failing prerequisite", $experiment->key
+                    );
+                    return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+                }
+                if ($prereq_res eq "cyclic") {
+                    $log->debugf(
+                        "Skip experiment %s because of cyclic prerequisite", $experiment->key
+                    );
+                    return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+                }
+            }
 
             # TODO check experiment.include
         }
