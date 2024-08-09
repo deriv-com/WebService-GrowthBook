@@ -14,8 +14,9 @@ use WebService::GrowthBook::Feature;
 use WebService::GrowthBook::FeatureResult;
 use WebService::GrowthBook::InMemoryFeatureCache;
 use WebService::GrowthBook::Eval qw(eval_condition);
-use WebService::GrowthBook::Util qw(gbhash in_range);
+use WebService::GrowthBook::Util qw(gbhash in_range get_query_string_override);
 use WebService::GrowthBook::Experiment;
+use WebService::GrowthBook::Result;
 
 our $VERSION = '0.003';
 
@@ -48,13 +49,20 @@ WebService::GrowthBook - sdk of growthbook
 # singletons
 
 class WebService::GrowthBook {
+    field $enabled :param //= 1;
     field $url :param //= 'https://cdn.growthbook.io';
     field $client_key :param;
     field $features :param //= {};
     field $attributes :param :reader :writer //= {};
     field $cache_ttl :param //= 60;
     field $user :param //= {};
+    field $forced_variations :param //= {};
+    field $overrides :param //= {};
+    field $sticky_bucket_service :param //= undef;
+
     field $cache //= WebService::GrowthBook::InMemoryFeatureCache->singleton;
+    field $sticky_bucket_assignment_docs //= {};
+
     method load_features {
         my $feature_repository = WebService::GrowthBook::FeatureRepository->new(cache => $cache);
         my $loaded_features = $feature_repository->load_features($url, $client_key, $cache_ttl);
@@ -123,7 +131,7 @@ class WebService::GrowthBook {
             }
 
             if ($rule->condition){
-                if (!eval_condition($self->attributes, $rule->condition)){
+                if (!eval_condition($attributes, $rule->condition)){
                     $log->debugf("Skip rule because of failed condition, feature %s", $feature_name);
                     continue;
                 }
@@ -192,8 +200,205 @@ class WebService::GrowthBook {
                 "Experiment %s has less than 2 variations, skip", $experiment->key
             );
             return $self->_get_experiment_result($experiment, feature_id => $feature_id);
-            # TODO implement _get_experiment_result first
         }
+
+        # 2. If growthbook is disabled, return immediately
+        if (!$enabled) {
+            $log->debugf(
+                "Skip experiment %s because GrowthBook is disabled", $experiment->key
+            );
+            return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+        }      
+        # 2.5. If the experiment props have been overridden, merge them in
+        if (exists $overrides->{$experiment->key}) {
+            $experiment->update($overrides->{$experiment->{key}});
+        }
+
+        # 3. If experiment is forced via a querystring in the URL
+        my $qs = get_query_string_override(
+            $experiment->key, $url, scalar @{$experiment->variations}
+        );
+        if (defined $qs) {
+            $log->debugf(
+                "Force variation %d from URL querystring, experiment %s",
+                $qs,
+                $experiment->key,
+            );
+            return $self->_get_experiment_result($experiment, variation_id => $qs, feature_id => $feature_id);
+        }
+
+        # 4. If variation is forced in the context
+        if (exists $forced_variations->{$experiment->key}) {
+            $log->debugf(
+                "Force variation %d from GrowthBook context, experiment %s",
+                $forced_variations->{$experiment->key},
+                $experiment->key,
+            );
+            return $self->_get_experiment_result(
+                $experiment, variation_id => $forced_variations->{$experiment->key}, feature_id => $feature_id
+            );
+        }
+
+        # 5. If experiment is a draft or not active, return immediately
+        if ($experiment->status eq "draft" or not $experiment->active) {
+            $log->debugf("Experiment %s is not active, skip", $experiment->key);
+            return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+        }
+
+        # 6. Get the user hash attribute and value
+        my ($hash_attribute, $hash_value) = $self->_get_hash_value($experiment->hash_attribute, $experiment->fallback_attribute);
+        if (!$hash_value) {
+            $log->debugf(
+                "Skip experiment %s because user's hashAttribute value is empty",
+                $experiment->key,
+            );
+            return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+        }
+
+        my $assigned = -1;
+        
+        my $found_sticky_bucket = 0;
+        my $sticky_bucket_version_is_blocked = 0;
+        if ($sticky_bucket_service && !$experiment->disableStickyBucketing) {
+            my $sticky_bucket = $self->_get_sticky_bucket_variation(
+                experiment_key       => $experiment->key,
+                bucket_version       => $experiment->bucketVersion,
+                min_bucket_version   => $experiment->minBucketVersion,
+                meta                 => $experiment->meta,
+                hash_attribute       => $experiment->hashAttribute,
+                fallback_attribute   => $experiment->fallbackAttribute,
+            );
+            $found_sticky_bucket = $sticky_bucket->{variation} >= 0;
+            $assigned = $sticky_bucket->{variation};
+            $sticky_bucket_version_is_blocked = $sticky_bucket->{versionIsBlocked};
+        }
+
+
+        if ($found_sticky_bucket) {
+            $log->debugf(
+                "Found sticky bucket for experiment %s, assigning sticky variation %s",
+                $experiment->key, $assigned
+            );
+        }
+
+        # Some checks are not needed if we already have a sticky bucket
+        else {
+            if ($experiment->filters){
+
+                # 7. Filtered out / not in namespace
+                if ($self->_is_filtered_out($experiment->{filters})) {
+                    $log->debugf(
+                        "Skip experiment %s because of filters/namespaces", $experiment->key
+                    );
+                    return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+                }
+            }
+        }
+
+            # TODO here
+    }
+
+    method _is_filtered_out($filters) {
+    
+        foreach my $filter (@$filters) {
+            my ($dummy, $hash_value) = $self->_get_hash_value($filter->{attribute} // "id");
+            if ($hash_value eq "") {
+                return 0;
+            }
+    
+            my $n = gbhash($filter->{seed} // "", $hash_value, $filter->{hashVersion} // 2);
+            if (!defined $n) {
+                return 0;
+            }
+    
+            my $filtered = 0;
+            foreach my $range (@{$filter->{ranges}}) {
+                if (in_range($n, $range)) {
+                    $filtered = 1;
+                    last;
+                }
+            }
+            if (!$filtered) {
+                return 1;
+            }
+        }
+        return 0;
+    }    
+
+    method _get_sticky_bucket_assignments($attr = '', $fallback = ''){
+        my %merged;
+    
+        my ($dummy, $hash_value) = $self->_get_hash_value($attr);
+        my $key = "$attr||$hash_value";
+        if (exists $sticky_bucket_assignment_docs->{$key}) {
+            %merged = %{ $sticky_bucket_assignment_docs->{$key}{assignments} };
+        }
+    
+        if ($fallback) {
+            ($dummy, $hash_value) = $self->_get_hash_value($fallback);
+            $key = "$fallback||$hash_value";
+            if (exists $self->{_sticky_bucket_assignment_docs}{$key}) {
+                # Merge the fallback assignments, but don't overwrite existing ones
+                while (my ($k, $v) = each %{ $sticky_bucket_assignment_docs->{$key}{assignments} }) {
+                    $merged{$k} //= $v;
+                }
+            }
+        }
+    
+        return \%merged;
+    }
+
+    method _get_sticky_bucket_variation($experiment_key, $bucket_version = 0, $min_bucket_version = 0, $meta = {}, $hash_attribute = undef, $fallback_attribute = undef){ 
+        my $id = $self->_get_sticky_bucket_experiment_key($experiment_key, $bucket_version);
+
+
+        my $assignments = $self->_get_sticky_bucket_assignments($hash_attribute, $fallback_attribute);
+        if ($self->_is_blocked($assignments, $experiment_key, $min_bucket_version)) {
+            return {
+                variation => -1,
+                versionIsBlocked => 1
+            };
+        }
+
+        my $variation_key = $assignments->{$id};
+        if (!$variation_key) {
+            return {
+                variation => -1
+            };
+        }
+
+        # Find the key in meta
+        my $variation = -1;
+        for (my $i = 0; $i < @$meta; $i++) {
+            if ($meta->[$i]->{key} eq $variation_key) {
+                $variation = $i;
+                last;
+            }
+        }
+
+        if ($variation < 0) {
+            return {
+                variation => -1
+            };
+        }
+
+        return { variation => $variation };
+    }
+
+    method _is_blocked($assignments, $experiment_key, $min_bucket_version = 0){
+        if ($min_bucket_version > 0) {
+            for my $i (0 .. $min_bucket_version - 1) {
+                my $blocked_key = $self->_get_sticky_bucket_experiment_key($experiment_key, $i);
+                if (exists $assignments->{$blocked_key}) {
+                    return 1;
+                }
+            }
+        }
+        return 0;
+    }
+
+    method _get_sticky_bucket_experiment_key($experiment_key, $bucket_version = 0){
+        return $experiment_key . "__" . $bucket_version;
     }
 
     method _get_experiment_result($experiment, $variation_id = -1, $hash_used = 0, $feature_id = undef, $bucket = undef, $sticky_bucket_used = 0){ 
@@ -210,7 +415,7 @@ class WebService::GrowthBook {
     
         my ($hash_attribute, $hash_value) = $self->_get_orig_hash_value($experiment->hash_attribute, $experiment->fallback_attribute);
     
-        return WebService::GrowthBook::FeatureResult->new(
+        return WebService::GrowthBook::Result->new(
             feature_id         => $feature_id,
             in_experiment      => $in_experiment,
             variation_id       => $variation_id,

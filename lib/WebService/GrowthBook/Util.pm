@@ -2,8 +2,9 @@ package WebService::GrowthBook::Util;
 use strict;
 use warnings;
 use Exporter qw(import);
+use URI;
 
-our @EXPORT_OK = qw(gbhash in_range);
+our @EXPORT_OK = qw(gbhash in_range get_query_string_override);
 
 sub fnv1a32 {
     my ($str) = @_;
@@ -36,4 +37,31 @@ sub in_range {
     my ($n, $range) = @_;
     return $range->[0] <= $n && $n < $range->[1];
 }
+
+
+sub get_query_string_override {
+    my ($id, $url, $num_variations) = @_;
+    my $uri = URI->new($url);
+
+    # Return undef if there is no query string
+    return undef unless $uri->query;
+
+    my %qs = $uri->query_form;
+
+    # Return undef if the id is not in the query string
+    return undef unless exists $qs{$id};
+
+    my $variation = $qs{$id};
+
+    # Return undef if the variation is not defined or not a digit
+    return undef unless defined $variation && $variation =~ /^\d+$/;
+
+    my $var_id = int($variation);
+
+    # Return undef if the variation id is out of range
+    return undef if $var_id < 0 || $var_id >= $num_variations;
+
+    return $var_id;
+}
+
 1;
