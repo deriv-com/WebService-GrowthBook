@@ -293,6 +293,34 @@ class WebService::GrowthBook {
                     return $self->_get_experiment_result($experiment, feature_id => $feature_id);
                 }
             }
+            elsif ($experiment->namespace && !$self->_in_namespace($hash_value, $experiment->namespace)) {
+                $log->debugf("Skip experiment %s because of namespace", $experiment->key);
+                return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+            }
+
+            # 7.5. If experiment has an include property
+            if ($experiment->include) {
+                eval {
+                    unless ($experiment->include->()) {
+                        $log->debugf(
+                            "Skip experiment %s because include() returned false",
+                            $experiment->key,
+                        );
+                        return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+                    }
+                } or do {
+                    $log->warnf(
+                        "Skip experiment %s because include() raised an Exception",
+                        $experiment->key,
+                    );
+                    return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+                };
+            }
+
+
+
+
+            # TODO check experiment.include
         }
 
             # TODO here
