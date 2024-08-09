@@ -59,6 +59,7 @@ class WebService::GrowthBook {
     field $forced_variations :param //= {};
     field $overrides :param //= {};
     field $sticky_bucket_service :param //= undef;
+    field $groups :param //= {};
 
     field $cache //= WebService::GrowthBook::InMemoryFeatureCache->singleton;
     field $sticky_bucket_assignment_docs //= {};
@@ -342,10 +343,65 @@ class WebService::GrowthBook {
                 }
             }
 
-            # TODO check experiment.include
+            # 8.1. Make sure user is in a matching group
+            if ($experiment->groups && @{$experiment->groups}) {
+                my $exp_groups = $groups || {};
+                my $matched = 0;
+                foreach my $group (@{$experiment->groups}) {
+                    if ($exp_groups->{$group}) {
+                        $matched = 1;
+                        last;
+                    }
+                }
+                if (!$matched) {
+                    $log->debugf(
+                        "Skip experiment %s because user not in required group",
+                        $experiment->key,
+                    );
+                    return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+                }
+            }
+
         }
 
+        # The following apply even when in a sticky bucket
+
+        # 8.2. If experiment.url is set, see if it's valid
+        if ($experiment->url) {
+            unless ($self->_url_is_valid($experiment->url)) {
+                $log->debugf(
+                    "Skip experiment %s because current URL is not targeted",
+                    $experiment->key,
+                );
+                return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+            }
+        }
+
+
             # TODO here
+    }
+
+    method _url_is_valid($pattern) {
+    
+        return 0 unless $url;
+    
+        eval {
+            my $r = qr/$pattern/;
+            if ($self->{_url} =~ $r) {
+                return 1;
+            }
+    
+            my $path_only = $url;
+            $path_only =~ s/^[^\/]*\//\//;
+            $path_only =~ s/^https?:\/\///;
+    
+            if ($path_only =~ $r) {
+                return 1;
+            }
+            return 0;
+        } or do {
+            return 1;
+        };
     }
 
     method _is_filtered_out($filters) {
