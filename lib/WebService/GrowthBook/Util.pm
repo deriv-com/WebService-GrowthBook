@@ -3,8 +3,9 @@ use strict;
 use warnings;
 use Exporter qw(import);
 use URI;
+use List::Util qw(sum);
 
-our @EXPORT_OK = qw(gbhash in_range get_query_string_override);
+our @EXPORT_OK = qw(gbhash in_range get_query_string_override get_equal_weights get_bucket_ranges);
 
 sub fnv1a32 {
     my ($str) = @_;
@@ -62,6 +63,52 @@ sub get_query_string_override {
     return undef if $var_id < 0 || $var_id >= $num_variations;
 
     return $var_id;
+}
+
+sub get_equal_weights {
+    my ($num_variations) = @_;
+    return [] if $num_variations < 1;
+    my $weight = 1 / $num_variations;
+    return [($weight) x $num_variations];
+}
+
+sub get_bucket_ranges {
+    my ($num_variations, $coverage, $weights) = @_;
+    $coverage //= 1;
+    $weights //= get_equal_weights($num_variations);
+
+    if ($coverage < 0) {
+        $coverage = 0;
+    }
+    if ($coverage > 1) {
+        $coverage = 1;
+    }
+    if (@$weights != $num_variations) {
+        $weights = get_equal_weights($num_variations);
+    }
+    if (sum(@$weights) < 0.99 || sum(@$weights) > 1.01) {
+        $weights = get_equal_weights($num_variations);
+    }
+
+    my $cumulative = 0;
+    my @ranges;
+    foreach my $w (@$weights) {
+        my $start = $cumulative;
+        $cumulative += $w;
+        push @ranges, [$start, $start + $coverage * $w];
+    }
+
+    return \@ranges;
+}
+
+sub choose_variation {
+    my ($n, $ranges) = @_;
+    for (my $i = 0; $i < @$ranges; $i++) {
+        if (in_range($n, $ranges->[$i])) {
+            return $i;
+        }
+    }
+    return -1;
 }
 
 1;

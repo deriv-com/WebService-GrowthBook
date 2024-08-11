@@ -14,7 +14,7 @@ use WebService::GrowthBook::Feature;
 use WebService::GrowthBook::FeatureResult;
 use WebService::GrowthBook::InMemoryFeatureCache;
 use WebService::GrowthBook::Eval qw(eval_condition);
-use WebService::GrowthBook::Util qw(gbhash in_range get_query_string_override);
+use WebService::GrowthBook::Util qw(gbhash in_range get_query_string_override get_bucket_ranges);
 use WebService::GrowthBook::Experiment;
 use WebService::GrowthBook::Result;
 
@@ -377,6 +377,36 @@ class WebService::GrowthBook {
             }
         }
 
+        # 9. Get bucket ranges and choose variation
+        my $n = gbhash(
+            $experiment->seed // $experiment->key, $hash_value, $experiment->hash_version // 1
+        );
+        if (!defined $n) {
+            $log->warnf(
+                "Skip experiment %s because of invalid hashVersion", $experiment->key
+            );
+            return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+        }
+
+        if (!$found_sticky_bucket) {
+            my $c = $experiment->coverage;
+            my $ranges = $experiment->ranges || get_bucket_ranges(
+                scalar @{$experiment->variations}, defined $c ? $c : 1, $experiment->weights
+            );
+            $assigned = choose_variation($n, $ranges);
+        }
+
+                # Unenroll if any prior sticky buckets are blocked by version
+        if ($sticky_bucket_version_is_blocked) {
+            $log->debugf(
+                "Skip experiment %s because sticky bucket version is blocked",
+                $experiment->key
+            );
+            return $self->_get_experiment_result(
+                $experiment, feature_id => $feature_id, sticky_bucket_used => 1
+            );
+        }
+
 
             # TODO here
     }
@@ -507,7 +537,12 @@ class WebService::GrowthBook {
         return $experiment_key . "__" . $bucket_version;
     }
 
-    method _get_experiment_result($experiment, $variation_id = -1, $hash_used = 0, $feature_id = undef, $bucket = undef, $sticky_bucket_used = 0){ 
+    method _get_experiment_result($experiment, %args){ 
+        my $variation_id = $args{variation_id} // -1;
+        my $hash_used = $args{hash_used} // 0;
+        my $feature_id = $args{feature_id};
+        my $bucket = $args{bucket};
+        my $sticky_bucket_used = $args{sticky_bucket_used} // 0;
         my $in_experiment = 1;
         if ($variation_id < 0 || $variation_id > @{$experiment->{variations}} - 1) {
             $variation_id = 0;
