@@ -68,7 +68,8 @@ class WebService::GrowthBook {
     field $cache //= WebService::GrowthBook::InMemoryFeatureCache->singleton;
     field $sticky_bucket_assignment_docs //= {};
     field $tracked = {};
-
+    field $assigned = {};
+    field $subscriptions = [];
     ADJUST {
         $tracking_callback //= $on_experiment_viewed;
     }
@@ -189,9 +190,28 @@ class WebService::GrowthBook {
                 min_bucket_version      => $rule->min_bucket_version,
             ); 
 
-            # TODO implement _run first
+            my $result = $self->_run($exp, $feature_name);
 
-
+            $self->_fire_subscriptions($exp, $result);
+                if (!$result->in_experiment) {
+                $log->debugf(
+                    "Skip rule because user not included in experiment, feature %s", $feature_name
+                );
+                next;
+            }
+            if ($result->passthrough) {
+                $log->debugf("Continue to next rule, feature %s", $feature_name);
+                next;
+            }
+            
+            $log->debugf("Assign value from experiment, feature %s", $feature_name);
+            return WebService::GrowthBook::FeatureResult->new(
+                value => $result->{value},
+                source => "experiment",
+                experiment => $exp,
+                result => $result,
+                ruleId => $rule->{id}
+            );
         }
         my $default_value = $feature->default_value;
     
@@ -200,6 +220,27 @@ class WebService::GrowthBook {
             value => $default_value,
             source => "default" # TODO fix this, maybe not default
             );
+    }
+
+    method _fire_subscriptions($experiment, $result) {
+        my $prev = $assigned->{$experiment->key};
+        if (
+            !$prev
+            || $prev->{result}->in_experiment != $result->in_experiment
+            || $prev->{result}->variation_id != $result->variation_id
+        ) {
+            $assigned->{$experiment->{key}} = {
+                experiment => $experiment,
+                result => $result,
+            };
+            foreach my $cb (@{$subscriptions}) {
+                eval {
+                    $cb->($experiment, $result);
+                } or do {
+                    # Handle exception silently
+                };
+            }
+        }
     }
 
     method _run($experiment, $feature_id){

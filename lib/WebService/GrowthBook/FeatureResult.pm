@@ -13,6 +13,9 @@ class WebService::GrowthBook::FeatureResult{
     field $feature_id :param :reader;
     field $value :param :reader;
     field $source :param :reader //= '';
+    field $experiment :param //= undef;
+    field $experiment_result :param //= undef;
+    field $rule_id :param //= undef;
     method on{
         if (JSON::MaybeXS::is_bool($value)){
             return $value ? 1 : 0;
