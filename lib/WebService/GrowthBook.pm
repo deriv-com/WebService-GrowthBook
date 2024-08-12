@@ -62,10 +62,16 @@ class WebService::GrowthBook {
     field $sticky_bucket_service :param //= undef;
     field $groups :param //= {};
     field $qa_mode :param //= 0;
+    field $on_experiment_viewed :param //= undef;
+    field $tracking_callback :param //= undef;
 
     field $cache //= WebService::GrowthBook::InMemoryFeatureCache->singleton;
     field $sticky_bucket_assignment_docs //= {};
+    field $tracked = {};
 
+    ADJUST {
+        $tracking_callback //= $on_experiment_viewed;
+    }
     method load_features {
         my $feature_repository = WebService::GrowthBook::FeatureRepository->new(cache => $cache);
         my $loaded_features = $feature_repository->load_features($url, $client_key, $cache_ttl);
@@ -450,14 +456,13 @@ class WebService::GrowthBook {
             sticky_bucket_used => $found_sticky_bucket
         );
 
-                # 13.5 Persist sticky bucket
+        # 13.5 Persist sticky bucket
         if ($sticky_bucket_service && !$experiment->disable_sticky_bucketing) {
             my %assignment;
             $assignment{$self->_get_sticky_bucket_experiment_key(
                 $experiment->key,
                 $experiment->bucketVersion
             )} = $result->key;
-            # TODO implement it first 
             my $data = $self->_generate_sticky_bucket_assignment_doc(
                 $hash_attribute,
                 $hash_value,
@@ -470,7 +475,31 @@ class WebService::GrowthBook {
                 $sticky_bucket_service->save_assignments($doc);
             }
         }
-            # TODO here
+        # 14. Fire the tracking callback if set
+        $self->_track($experiment, $result);
+
+        # 15. Return the result
+        $log->debugf("Assigned variation %d in experiment %s", $assigned, $experiment->key);
+        return $result; 
+    }
+
+    method _track($experiment, $result) {
+    
+        return unless $tracking_callback;
+    
+        my $key = $result->hash_attribute
+            . $result->hash_value
+            . $experiment->key
+            . $result->variation_id;
+    
+        unless ($tracked->{$key}) {
+            eval {
+                $tracking_callback->($experiment, $result);
+                $tracked->{$key} = 1;
+            } or do {
+                # Handle exception silently
+            };
+        }
     }
 
     method _generate_sticky_bucket_assignment_doc($attribute_name, $attribute_value, $assignments){
