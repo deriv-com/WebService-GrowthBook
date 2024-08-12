@@ -6,8 +6,9 @@ use warnings;
 no indirect;
 use feature qw(state);
 use Object::Pad;
-use JSON::MaybeUTF8 qw(decode_json_text);
+use JSON::MaybeUTF8 qw(decode_json_text encode_json_text);
 use Scalar::Util qw(blessed);
+use Data::Compare qw(Compare);
 use Log::Any qw($log);
 use WebService::GrowthBook::FeatureRepository;
 use WebService::GrowthBook::Feature;
@@ -60,6 +61,7 @@ class WebService::GrowthBook {
     field $overrides :param //= {};
     field $sticky_bucket_service :param //= undef;
     field $groups :param //= {};
+    field $qa_mode :param //= 0;
 
     field $cache //= WebService::GrowthBook::InMemoryFeatureCache->singleton;
     field $sticky_bucket_assignment_docs //= {};
@@ -396,7 +398,7 @@ class WebService::GrowthBook {
             $assigned = choose_variation($n, $ranges);
         }
 
-                # Unenroll if any prior sticky buckets are blocked by version
+        # Unenroll if any prior sticky buckets are blocked by version
         if ($sticky_bucket_version_is_blocked) {
             $log->debugf(
                 "Skip experiment %s because sticky bucket version is blocked",
@@ -407,8 +409,87 @@ class WebService::GrowthBook {
             );
         }
 
+        # 10. Return if not in experiment
+        if ($assigned < 0) {
+            $log->debugf(
+                "Skip experiment %s because user is not included in the rollout",
+                $experiment->key,
+            );
+            return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+        }
 
+        # 11. If experiment is forced, return immediately
+        if (defined $experiment->force) {
+            $log->debugf(
+                "Force variation %d in experiment %s", $experiment->force, $experiment->key
+            );
+            return $self->_get_experiment_result(
+                $experiment, feature_id => $feature_id
+            );
+        }
+
+        # 12. Exclude if in QA mode
+        if ($qa_mode) {
+            $log->debugf("Skip experiment %s because of QA Mode", $experiment->key);
+            return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+        }
+
+        # 12.5. If experiment is stopped, return immediately
+        if ($experiment->status eq "stopped") {
+            $log->debugf("Skip experiment %s because it is stopped", $experiment->key);
+            return $self->_get_experiment_result($experiment, feature_id => $feature_id);
+        }
+
+        # 13. Build the result object
+        my $result = $self->_get_experiment_result(
+            $experiment, 
+            variation_id => $assigned, 
+            hash_used => 1, 
+            feature_id => $feature_id, 
+            bucket => $n, 
+            sticky_bucket_used => $found_sticky_bucket
+        );
+
+                # 13.5 Persist sticky bucket
+        if ($sticky_bucket_service && !$experiment->disable_sticky_bucketing) {
+            my %assignment;
+            $assignment{$self->_get_sticky_bucket_experiment_key(
+                $experiment->key,
+                $experiment->bucketVersion
+            )} = $result->key;
+            # TODO implement it first 
+            my $data = $self->_generate_sticky_bucket_assignment_doc(
+                $hash_attribute,
+                $hash_value,
+                \%assignment
+            );
+            my $doc = $data->{doc};
+            if ($doc && $data->{changed}) {
+                $sticky_bucket_assignment_docs //= {};
+                $sticky_bucket_assignment_docs->{$data->{key}} = $doc;
+                $sticky_bucket_service->save_assignments($doc);
+            }
+        }
             # TODO here
+    }
+
+    method _generate_sticky_bucket_assignment_doc($attribute_name, $attribute_value, $assignments){
+        my $key = $attribute_name . "||" . $attribute_value;
+        my $existing_assignments = $sticky_bucket_assignment_docs->{$key}{assignments} // {};
+    
+        my %new_assignments = (%$existing_assignments, %$assignments);
+
+        my $changed = !Compare($existing_assignments, \%new_assignments);
+    
+        return {
+            key => $key,
+            doc => {
+                attribute_name => $attribute_name,
+                attribute_value => $attribute_value,
+                assignments => \%new_assignments
+            },
+            changed => $changed
+        };
     }
 
     method _url_is_valid($pattern) {
