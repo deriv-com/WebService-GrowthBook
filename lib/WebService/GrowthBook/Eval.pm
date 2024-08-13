@@ -131,6 +131,12 @@ sub eval_condition_value {
 
     }
     debug('------------here eq ?', $condition_value, $attribute_value, 1);
+    if(!defined($condition_value) && !defined($attribute_value)){
+        return 1;
+    }
+    elsif(!defined($condition_value) || !defined($attribute_value)){
+        return 0;
+    }
     return $condition_value eq $attribute_value;
 }
 
