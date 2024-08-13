@@ -96,7 +96,41 @@ sub eval_condition_value {
         }
         return 1;  # True
     }
-    # TODO check this is str or number or what else
+    if (ref($condition_value) eq 'ARRAY') {
+        if(ref($attribute_value) ne 'ARRAY'){
+            return 0;
+        }
+        if(scalar @$condition_value != scalar @$attribute_value){
+            return 0;
+        }
+        for my $i (0..$#$condition_value){
+            if(!eval_condition_value($condition_value->[$i], $attribute_value->[$i])){
+                return 0;
+            }
+        }
+        return 1;
+    }
+
+    if(ref($condition_value) eq 'HASH'){
+        if(ref($attribute_value) ne 'HASH'){
+            return 0;
+        }
+        if(scalar keys %$condition_value != scalar keys %$attribute_value){
+            return 0;
+        }
+        for my $key (keys %$condition_value){
+            if(!exists $attribute_value->{$key}){
+                return 0;
+            }
+            if(!eval_condition_value($condition_value->{$key}, $attribute_value->{$key})){
+                debug("here in hash", $condition_value, $attribute_value, 0);
+                return 0;
+            }
+        }
+        return 1;
+
+    }
+    debug('------------here eq ?', $condition_value, $attribute_value, 1);
     return $condition_value eq $attribute_value;
 }
 
