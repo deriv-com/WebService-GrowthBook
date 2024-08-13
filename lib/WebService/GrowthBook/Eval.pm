@@ -6,6 +6,7 @@ use Exporter 'import';
 use Scalar::Util qw(looks_like_number);
 use Data::Dumper;
 use Syntax::Keyword::Try;
+use JSON::MaybeXS qw(is_bool);
 our @EXPORT_OK = qw(eval_condition);
 sub debug {
     print STDERR Dumper(\@_);
@@ -220,7 +221,9 @@ sub eval_operator_condition {
     } elsif ($operator eq '$exists') {
         return !$condition_value ? !defined $attribute_value : defined $attribute_value;
     } elsif ($operator eq '$type') {
-        return get_type($attribute_value) eq $condition_value;
+        my $r = get_type($attribute_value);
+        debug("type", $attribute_value, $r);
+        return $r eq $condition_value;
     } elsif ($operator eq '$not') {
         return !eval_condition_value($condition_value, $attribute_value);
     }
@@ -294,7 +297,7 @@ sub elem_match {
 
 sub get_type {
     my ($attribute_value) = @_;
-
+    debug('get_type in function', $attribute_value);
     if (!defined $attribute_value) {
         return "null";
     }
@@ -302,10 +305,10 @@ sub get_type {
         if ($attribute_value =~ /^[+-]?\d+$/ || $attribute_value =~ /^[+-]?\d*\.\d+$/) {
             return "number";
         }
-        if ($attribute_value eq '0' || $attribute_value eq '1') {
-            return "boolean";
-        }
         return "string";
+    }
+    if (is_bool($attribute_value)) {
+        return "boolean";
     }
     if (ref($attribute_value) eq 'ARRAY' || ref($attribute_value) eq 'HASH') {
         return "array";
