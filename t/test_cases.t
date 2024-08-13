@@ -3,6 +3,7 @@ use warnings;
 use Test::Warnings;
 use Test::More;
 use WebService::GrowthBook::Eval qw(eval_condition);
+use WebService::GrowthBook::Util qw(gbhash);
 use JSON::MaybeUTF8 qw(decode_json_text);
 use Path::Tiny;
 use FindBin qw($Bin);
@@ -20,7 +21,7 @@ for my $case (@$eval_condition_cases){
 
 my $version_compare_cases = $test_cases->{versionCompare};
 test_version_compare($version_compare_cases);
-
+test_hash($test_cases->{hash});
 ok(1);
 done_testing;
 
@@ -41,5 +42,13 @@ sub test_version_compare{
                 is($pv1 gt $pv2, $result, "$v1 $op $v2");
             }
         }
+    }
+}
+
+sub test_hash{
+    my $cases = shift;
+    for my $case ($cases->@*){
+        my ($seed, $value, $version, $expected_result) = $case->@*;
+        is(gbhash($seed, $value, $version), $expected_result, "gbhash($seed, $value, $version)");
     }
 }
