@@ -310,7 +310,7 @@ sub get_type {
     if (is_bool($attribute_value)) {
         return "boolean";
     }
-    if (ref($attribute_value) eq 'ARRAY' || ref($attribute_value) eq 'HASH') {
+    if (ref($attribute_value) eq 'ARRAY') {
         return "array";
     }
     if (ref($attribute_value) eq 'HASH') {
