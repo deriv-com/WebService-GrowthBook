@@ -4,19 +4,28 @@ use warnings;
 no indirect;
 use Exporter 'import';
 use Scalar::Util qw(looks_like_number);
+use Data::Dumper;
+use Syntax::Keyword::Try;
 our @EXPORT_OK = qw(eval_condition);
+sub debug {
+    print STDERR Dumper(\@_);
+}
 
 sub eval_condition {
     my ($attributes, $condition) = @_;
 
     if (exists $condition->{"\$or"}) {
-        return eval_or($attributes, $condition->{"\$or"});
+        my $r = eval_or($attributes, $condition->{"\$or"});
+        debug("eval_or", $attributes, $condition->{'$or'}, $r);
+        return $r;
     }
     if (exists $condition->{"\$nor"}) {
         return !eval_or($attributes, $condition->{"\$nor"});
     }
     if (exists $condition->{"\$and"}) {
-        return eval_and($attributes, $condition->{"\$and"});
+        my $r = eval_and($attributes, $condition->{"\$and"});
+        debug("eval_and", $attributes, $condition->{'$and'}, $r);
+        return $r;
     }
     if (exists $condition->{"\$not"}) {
         return !eval_condition($attributes, $condition->{"\$not"});
@@ -24,6 +33,7 @@ sub eval_condition {
 
     while (my ($key, $value) = each %$condition) {
         if (!eval_condition_value($value, get_path($attributes, $key))) {
+            debug("eval_condition_value", $value, get_path($attributes, $key), 0);
             return 0;
         }
     }
@@ -64,6 +74,7 @@ sub eval_and {
 
     foreach my $condition (@$conditions) {
         if (!eval_condition($attributes, $condition)) {
+            debug("eval_condition", $attributes, $condition, 0);
             return 0;  # False
         }
     }
@@ -78,6 +89,7 @@ sub eval_condition_value {
     if (ref($condition_value) eq 'HASH' && is_operator_object($condition_value)) {
         while (my ($key, $value) = each %$condition_value) {
             if (!eval_operator_condition($key, $attribute_value, $value)) {
+                debug("eval_operator_condition", $key, $attribute_value, $value, 0);
                 return 0;  # False
             }
         }
@@ -100,41 +112,63 @@ sub is_operator_object {
 
 sub compare {
     my ($a, $b) = @_;
+    debug("compare", $a, $b);
     if(!defined ($a)){
         $a = 0;
     }
     if(!defined ($b)){
         $b = 0;
     }
+    debug("after set compare", $a, $b);
     return $a <=> $b;
 }
 sub eval_operator_condition {
     my ($operator, $attribute_value, $condition_value) = @_;
 
     if ($operator eq '$eq') {
-        eval {
+        try {
             return compare($attribute_value, $condition_value) == 0;
-        } or return 0;
+        } 
+        catch {
+            return 0;
+        }
     } elsif ($operator eq '$ne') {
-        eval {
+        try {
             return compare($attribute_value, $condition_value) != 0;
-        } or return 0;
+        } 
+        catch {
+            return 0;
+        }
     } elsif ($operator eq '$lt') {
-        eval {
+        try {
             return compare($attribute_value, $condition_value) < 0;
-        } or return 0;
+        }
+        catch {
+            return 0;
+        }
     } elsif ($operator eq '$lte') {
-        eval {
+        try {
             return compare($attribute_value, $condition_value) <= 0;
-        } or return 0;
+        }
+        catch {
+            return 0;
+        }
     } elsif ($operator eq '$gt') {
-        eval {
-            return compare($attribute_value, $condition_value) > 0;
-        } or return 0;
+        try {
+            my $r = compare($attribute_value, $condition_value);
+            debug("compare gt", $attribute_value, $condition_value, $r);
+            return $r > 0;
+        }
+        catch {
+            return 0;
+        }
     } elsif ($operator eq '$gte') {
-        eval {
+        try {
             return compare($attribute_value, $condition_value) >= 0;
-        } or return 0;
+        }
+        catch {
+            return 0;
+        }
     } elsif ($operator eq '$veq') {
         return padded_version_string($attribute_value) eq padded_version_string($condition_value);
     } elsif ($operator eq '$vne') {
@@ -148,10 +182,13 @@ sub eval_operator_condition {
     } elsif ($operator eq '$vgte') {
         return padded_version_string($attribute_value) ge padded_version_string($condition_value);
     } elsif ($operator eq '$regex') {
-        eval {
+        try {
             my $r = qr/$condition_value/;
             return $attribute_value =~ $r;
-        } or return 0;
+        }
+        catch {
+            return 0;
+        }
     } elsif ($operator eq '$in') {
         return 0 unless ref($condition_value) eq 'ARRAY';
         return is_in($condition_value, $attribute_value);
