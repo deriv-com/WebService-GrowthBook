@@ -8,15 +8,11 @@ use Data::Dumper;
 use Syntax::Keyword::Try;
 use JSON::MaybeXS qw(is_bool);
 our @EXPORT_OK = qw(eval_condition);
-sub debug {
-    print STDERR Dumper(\@_);
-}
 
 sub eval_condition {
     my ($attributes, $condition) = @_;
     if (exists $condition->{"\$or"}) {
         my $r = eval_or($attributes, $condition->{"\$or"});
-        debug("eval_or", $attributes, $condition->{'$or'}, $r);
         return $r;
     }
     if (exists $condition->{"\$nor"}) {
@@ -24,7 +20,6 @@ sub eval_condition {
     }
     if (exists $condition->{"\$and"}) {
         my $r = eval_and($attributes, $condition->{"\$and"});
-        debug("eval_and", $attributes, $condition->{'$and'}, $r);
         return $r;
     }
     if (exists $condition->{"\$not"}) {
@@ -32,9 +27,7 @@ sub eval_condition {
     }
 
     while (my ($key, $value) = each %$condition) {
-        debug('calling get_path', $attributes, $key);
         if (!eval_condition_value($value, get_path($attributes, $key))) {
-            debug("eval_condition_value in eval_condition", $value, get_path($attributes, $key), 0);
             return 0;
         }
     }
@@ -75,7 +68,6 @@ sub eval_and {
 
     foreach my $condition (@$conditions) {
         if (!eval_condition($attributes, $condition)) {
-            debug("eval_condition", $attributes, $condition, 0);
             return 0;  # False
         }
     }
@@ -86,11 +78,9 @@ sub eval_and {
 
 sub eval_condition_value {
     my ($condition_value, $attribute_value) = @_;
-    debug("eval_condition_value", $condition_value, $attribute_value);
     if (ref($condition_value) eq 'HASH' && is_operator_object($condition_value)) {
         while (my ($key, $value) = each %$condition_value) {
             if (!eval_operator_condition($key, $attribute_value, $value)) {
-                debug("eval_operator_condition", $key, $attribute_value, $value, 0);
                 return 0;  # False
             }
         }
@@ -123,14 +113,12 @@ sub eval_condition_value {
                 return 0;
             }
             if(!eval_condition_value($condition_value->{$key}, $attribute_value->{$key})){
-                debug("here in hash", $condition_value, $attribute_value, 0);
                 return 0;
             }
         }
         return 1;
 
     }
-    debug('------------here eq ?', $condition_value, $attribute_value, 1);
     if(!defined($condition_value) && !defined($attribute_value)){
         return 1;
     }
@@ -159,7 +147,6 @@ sub compare {
     if(looks_like_number($b) && not defined($a)){
         $a = 0;
     }
-    debug("after set compare", $a, $b);
     if(looks_like_number($a) && looks_like_number($b)){
         return $a <=> $b;
     }
@@ -169,7 +156,6 @@ sub compare {
 }
 sub eval_operator_condition {
     my ($operator, $attribute_value, $condition_value) = @_;
-    debug("eval_operator_condition", $operator, $attribute_value, $condition_value);
     if ($operator eq '$eq') {
         try {
             return compare($attribute_value, $condition_value) == 0;
@@ -201,7 +187,6 @@ sub eval_operator_condition {
     } elsif ($operator eq '$gt') {
         try {
             my $r = compare($attribute_value, $condition_value);
-            debug("compare gt", $attribute_value, $condition_value, $r);
             return $r > 0;
         }
         catch {
@@ -262,7 +247,6 @@ sub eval_operator_condition {
         return !$condition_value ? !defined $attribute_value : defined $attribute_value;
     } elsif ($operator eq '$type') {
         my $r = get_type($attribute_value);
-        debug("type", $attribute_value, $r);
         return $r eq $condition_value;
     } elsif ($operator eq '$not') {
         return !eval_condition_value($condition_value, $attribute_value);
@@ -303,7 +287,6 @@ sub padded_version_string {
 sub is_in {
     my ($condition_value, $attribute_value) = @_;
     return 0 unless defined($attribute_value);
-    debug('is_in', @_);
     if (ref($attribute_value) eq 'ARRAY') {
         my %condition_hash = map { $_ => 1 } @$condition_value;
         foreach my $item (@$attribute_value) {
@@ -337,7 +320,6 @@ sub elem_match {
 
 sub get_type {
     my ($attribute_value) = @_;
-    debug('get_type in function', $attribute_value);
     if (!defined $attribute_value) {
         return "null";
     }

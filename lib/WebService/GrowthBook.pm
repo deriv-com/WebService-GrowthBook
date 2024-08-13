@@ -52,7 +52,7 @@ WebService::GrowthBook - sdk of growthbook
 class WebService::GrowthBook {
     field $enabled :param //= 1;
     field $url :param //= 'https://cdn.growthbook.io';
-    field $client_key :param;
+    field $client_key :param //= "";
     field $features :param //= {};
     field $attributes :param :reader :writer //= {};
     field $cache_ttl :param //= 60;
