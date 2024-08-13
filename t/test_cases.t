@@ -2,6 +2,7 @@ use strict;
 use warnings;
 use Test::Warnings;
 use Test::More;
+use WebService::GrowthBook;
 use WebService::GrowthBook::Eval qw(eval_condition);
 use WebService::GrowthBook::Util qw(gbhash get_bucket_ranges);
 use JSON::MaybeUTF8 qw(decode_json_text);
@@ -13,8 +14,6 @@ my $test_cases = decode_json_text($json_file->slurp_utf8);
 
 my $eval_condition_cases = $test_cases->{evalCondition};
 for my $case (@$eval_condition_cases){
-    diag("-" x 80);
-    diag(explain($case));
     my ($name, $condition, $attributes, $expected_result) = $case->@*;
     is(eval_condition($attributes, $condition), $expected_result, $name) or exit(0);
 }
@@ -23,6 +22,7 @@ my $version_compare_cases = $test_cases->{versionCompare};
 test_version_compare($version_compare_cases);
 test_hash($test_cases->{hash});
 test_get_bucket_range($test_cases->{getBucketRange});
+test_feature($test_cases->{feature});
 ok(1);
 done_testing;
 
@@ -61,5 +61,15 @@ sub test_get_bucket_range{
         my ($num_variations, $coverage, $weights) = $args->@*;
         my $actual = get_bucket_ranges($num_variations, $coverage, $weights);
         is_deeply($actual, $expected, $name);
+    }
+}
+
+sub test_feature{
+    my $cases = shift;
+    for my $case ($cases->@*){
+        my ($name, $ctx, $key, $expected) = $case->@*;
+        my $gb = WebService::GrowthBook->new(%$ctx);
+        my $res = $gb->eval_feature($key);
+        is_deeply($res->to_hash, $expected, $name);
     }
 }

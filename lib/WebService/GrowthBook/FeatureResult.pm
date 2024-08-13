@@ -21,11 +21,26 @@ class WebService::GrowthBook::FeatureResult{
             return $value ? 1 : 0;
         }
         $log->errorf("FeatureResult->on/off called on non-boolean feature %s", $feature_id);
-        return undef;
+        return 0;
     }
     method off{
         my $result = $self->on;
         return $result unless defined($result);
         return $result ? 0 : 1;
+    }
+
+    method to_hash {
+        my %data = (
+            value => $value,
+            source => $source,
+            on => $self->on,
+            off => $self->off,
+        );
+    
+        $data{ruleId} = $rule_id if defined $rule_id;
+        $data{experiment} = $experiment->to_hash() if defined $experiment;
+        $data{experimentResult} = $experiment_result->to_hash() if defined $experiment_result;
+    
+        return \%data;
     }
 }

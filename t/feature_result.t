@@ -43,10 +43,10 @@ subtest "data structure" => sub {
 subtest "call on/off on non-boolean" => sub {
     my $result = WebService::GrowthBook::FeatureResult->new(feature_id => 'test', value => 1);
     $log->clear;
-    is($result->on, undef, "on called on non-boolean");
+    is($result->on, 0, "on called on non-boolean");
     $log->contains_ok(qr{FeatureResult->on/off called on non-boolean feature test}, "log on non-boolean");
     $log->clear;
-    is($result->off, undef, "off called on non-boolean");
+    is($result->off, 1, "off called on non-boolean");
     $log->contains_ok(qr{FeatureResult->on/off called on non-boolean feature test}, "log off non-boolean");
 };
 
