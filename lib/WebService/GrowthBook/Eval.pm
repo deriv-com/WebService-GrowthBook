@@ -13,7 +13,6 @@ sub debug {
 
 sub eval_condition {
     my ($attributes, $condition) = @_;
-
     if (exists $condition->{"\$or"}) {
         my $r = eval_or($attributes, $condition->{"\$or"});
         debug("eval_or", $attributes, $condition->{'$or'}, $r);
@@ -32,8 +31,9 @@ sub eval_condition {
     }
 
     while (my ($key, $value) = each %$condition) {
+        debug('calling get_path', $attributes, $key);
         if (!eval_condition_value($value, get_path($attributes, $key))) {
-            debug("eval_condition_value", $value, get_path($attributes, $key), 0);
+            debug("eval_condition_value in eval_condition", $value, get_path($attributes, $key), 0);
             return 0;
         }
     }
@@ -85,7 +85,7 @@ sub eval_and {
 
 sub eval_condition_value {
     my ($condition_value, $attribute_value) = @_;
-
+    debug("eval_condition_value", $condition_value, $attribute_value);
     if (ref($condition_value) eq 'HASH' && is_operator_object($condition_value)) {
         while (my ($key, $value) = each %$condition_value) {
             if (!eval_operator_condition($key, $attribute_value, $value)) {
@@ -124,7 +124,7 @@ sub compare {
 }
 sub eval_operator_condition {
     my ($operator, $attribute_value, $condition_value) = @_;
-
+    debug("eval_operator_condition", $operator, $attribute_value, $condition_value);
     if ($operator eq '$eq') {
         try {
             return compare($attribute_value, $condition_value) == 0;
@@ -255,7 +255,8 @@ sub padded_version_string {
 }
 sub is_in {
     my ($condition_value, $attribute_value) = @_;
-
+    return 0 unless defined($attribute_value);
+    debug('is_in', @_);
     if (ref($attribute_value) eq 'ARRAY') {
         my %condition_hash = map { $_ => 1 } @$condition_value;
         foreach my $item (@$attribute_value) {
