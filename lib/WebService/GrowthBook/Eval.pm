@@ -112,15 +112,19 @@ sub is_operator_object {
 
 sub compare {
     my ($a, $b) = @_;
-    debug("compare", $a, $b);
-    if(!defined ($a)){
-        $a = 0;
-    }
-    if(!defined ($b)){
+    if(looks_like_number($a) && not defined($b)){
         $b = 0;
     }
+    if(looks_like_number($b) && not defined($a)){
+        $a = 0;
+    }
     debug("after set compare", $a, $b);
-    return $a <=> $b;
+    if(looks_like_number($a) && looks_like_number($b)){
+        return $a <=> $b;
+    }
+    else {
+        return $a cmp $b;
+    }
 }
 sub eval_operator_condition {
     my ($operator, $attribute_value, $condition_value) = @_;
