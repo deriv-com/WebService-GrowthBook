@@ -28,7 +28,7 @@ class WebService::GrowthBook::Result{
         $passthrough = $meta->{passthrough} if exists $meta->{passthrough};
     }
 
-    method to_dict {
+    method to_hash {
         my %obj = (
             feature_id         => $feature_id,
             variation_id       => $variation_id,
@@ -41,9 +41,9 @@ class WebService::GrowthBook::Result{
             sticky_bucket_used => $sticky_bucket_used,
         );
     
-        $obj{bucket} = $self->{bucket} if defined $self->{bucket};
-        $obj{name} = $self->{name} if $self->{name};
-        $obj{passthrough} = 1 if $self->{passthrough};
+        $obj{bucket} = $self->bucket if defined $bucket;
+        $obj{name} = $name if $name;
+        $obj{passthrough} = 1 if $self->passthrough;
     
         return \%obj;
     }

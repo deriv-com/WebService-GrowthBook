@@ -6,7 +6,7 @@ use URI;
 use List::Util qw(sum);
 use String::CamelCase qw(decamelize);
 
-our @EXPORT_OK = qw(gbhash in_range get_query_string_override get_equal_weights get_bucket_ranges adjust_args_camel_to_snake);
+our @EXPORT_OK = qw(gbhash in_range get_query_string_override get_equal_weights get_bucket_ranges adjust_args_camel_to_snake choose_variation);
 
 sub fnv1a32 {
     my ($str) = @_;

@@ -7,8 +7,8 @@ use Object::Pad;
 class WebService::GrowthBook::Experiment {
     field $key :param :reader;
     field $variations :param :reader //= [];
-    field $weights :param :reader //= {};
-    field $active :param :reader //= 1;
+    field $weights :param :reader //= [];
+    field $active :param :reader //= undef;
     field $status :param :reader //= "running";
     field $coverage :param :reader //= undef;
     field $condition :param :reader //= undef;
@@ -41,7 +41,7 @@ class WebService::GrowthBook::Experiment {
         $force = $data->{force} if exists $data->{force};
     }
 
-    method to_dict {
+    method to_hash {
         my %obj = (
             key                     => $key,
             variations              => $variations,

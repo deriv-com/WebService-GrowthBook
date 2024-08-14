@@ -16,6 +16,10 @@ class WebService::GrowthBook::FeatureResult{
     field $experiment :param //= undef;
     field $experiment_result :param //= undef;
     field $rule_id :param //= undef;
+    ADJUST {
+        use Carp qw(longmess);
+        #print STDERR longmess("feature result adjust");
+    }
     method on{
         return $value ? 1 : 0;
     }

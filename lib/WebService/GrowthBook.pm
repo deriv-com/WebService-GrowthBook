@@ -15,7 +15,7 @@ use WebService::GrowthBook::Feature;
 use WebService::GrowthBook::FeatureResult;
 use WebService::GrowthBook::InMemoryFeatureCache;
 use WebService::GrowthBook::Eval qw(eval_condition);
-use WebService::GrowthBook::Util qw(gbhash in_range get_query_string_override get_bucket_ranges);
+use WebService::GrowthBook::Util qw(gbhash in_range get_query_string_override get_bucket_ranges choose_variation);
 use WebService::GrowthBook::Experiment;
 use WebService::GrowthBook::Result;
 
@@ -174,7 +174,7 @@ class WebService::GrowthBook {
                 );
             }
 
-            if($rule->variations){
+            if(!defined($rule->variations)){
                 $log->warnf("Skip invalid rule, feature %s", $feature_name);
                 next;
             }
@@ -202,26 +202,29 @@ class WebService::GrowthBook {
             ); 
 
             my $result = $self->_run($exp, $feature_name);
-
             $self->_fire_subscriptions($exp, $result);
-                if (!$result->in_experiment) {
+            if (!$result->in_experiment) {
                 $log->debugf(
                     "Skip rule because user not included in experiment, feature %s", $feature_name
                 );
+                print STDERR "here 1\n";
                 next;
             }
             if ($result->passthrough) {
                 $log->debugf("Continue to next rule, feature %s", $feature_name);
+
+                print STDERR "here 2\n";
                 next;
             }
             
             $log->debugf("Assign value from experiment, feature %s", $feature_name);
             return WebService::GrowthBook::FeatureResult->new(
-                value => $result->{value},
+                value => $result->value,
                 source => "experiment",
                 experiment => $exp,
                 result => $result,
-                ruleId => $rule->{id}
+                rule_id => $rule->id,
+                feature_id => $feature_name,
             );
         }
         my $default_value = $feature->default_value;
@@ -706,7 +709,12 @@ class WebService::GrowthBook {
         my $bucket = $args{bucket};
         my $sticky_bucket_used = $args{sticky_bucket_used} // 0;
         my $in_experiment = 1;
-        if ($variation_id < 0 || $variation_id > @{$experiment->{variations}} - 1) {
+        use Carp qw(longmess);
+        print STDERR longmess();
+        print STDERR "variation_id: $variation_id\n";
+        use Data::Dumper;
+        print STDERR Dumper($experiment->variations);
+        if ($variation_id < 0 || $variation_id > @{$experiment->variations} - 1) {
             $variation_id = 0;
             $in_experiment = 0;
         }
