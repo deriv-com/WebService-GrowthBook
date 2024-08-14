@@ -4,8 +4,9 @@ use warnings;
 use Exporter qw(import);
 use URI;
 use List::Util qw(sum);
+use String::CamelCase qw(decamelize);
 
-our @EXPORT_OK = qw(gbhash in_range get_query_string_override get_equal_weights get_bucket_ranges);
+our @EXPORT_OK = qw(gbhash in_range get_query_string_override get_equal_weights get_bucket_ranges adjust_args_camel_to_snake);
 
 sub fnv1a32 {
     my ($str) = @_;
@@ -109,6 +110,17 @@ sub choose_variation {
         }
     }
     return -1;
+}
+
+sub adjust_args_camel_to_snake {
+    my ($args) = @_;
+    for my $key (keys %$args) {
+        my $snake_key = decamelize($key);
+        if ($key eq $snake_key) {
+            next;
+        }
+        $args->{$snake_key} = delete $args->{$key};
+    }
 }
 
 1;

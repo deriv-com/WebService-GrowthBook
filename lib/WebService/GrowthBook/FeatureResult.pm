@@ -17,15 +17,10 @@ class WebService::GrowthBook::FeatureResult{
     field $experiment_result :param //= undef;
     field $rule_id :param //= undef;
     method on{
-        if (JSON::MaybeXS::is_bool($value)){
-            return $value ? 1 : 0;
-        }
-        $log->errorf("FeatureResult->on/off called on non-boolean feature %s", $feature_id);
-        return 0;
+        return $value ? 1 : 0;
     }
     method off{
         my $result = $self->on;
-        return $result unless defined($result);
         return $result ? 0 : 1;
     }
 

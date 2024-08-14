@@ -1,4 +1,4 @@
-package Experiment;
+package WebService::GrowthBook::Experiment;
 
 use strict;
 use warnings;
@@ -6,7 +6,7 @@ use Object::Pad;
 
 class WebService::GrowthBook::Experiment {
     field $key :param :reader;
-    field $variations :param :reader;
+    field $variations :param :reader //= [];
     field $weights :param :reader //= {};
     field $active :param :reader //= 1;
     field $status :param :reader //= "running";

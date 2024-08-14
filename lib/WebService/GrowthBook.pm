@@ -72,6 +72,9 @@ class WebService::GrowthBook {
     field $subscriptions = [];
     ADJUST {
         $tracking_callback //= $on_experiment_viewed;
+        if($features){
+            $self->set_features($features);
+        }
     }
     method load_features {
         my $feature_repository = WebService::GrowthBook::FeatureRepository->new(cache => $cache);
@@ -86,6 +89,7 @@ class WebService::GrowthBook {
         $features = {};
         for my $feature_id (keys $features_set->%*) {
             my $feature = $features_set->{$feature_id};
+            use Data::Dumper;
             if(blessed($feature) && $feature->isa('WebService::GrowthBook::Feature')){
                 $features->{$feature->id} = $feature;
             }
@@ -124,9 +128,9 @@ class WebService::GrowthBook {
 
         my $feature = $features->{$feature_name};
         for my $rule (@{$feature->rules}){
-            $log->debugf("Evaluating feature %s, rule %s", $feature_name, $rule.to_hash());
-            if ($rule->parentConditions){
-                my $prereq_res = $self->eval_prereqs($rule->parentConditions, $stack);
+            $log->debugf("Evaluating feature %s, rule %s", $feature_name, $rule->to_hash());
+            if ($rule->parent_conditions){
+                my $prereq_res = $self->eval_prereqs($rule->parent_conditions, $stack);
                 if ($prereq_res eq "gate") {
                     $log->debugf("Top-lavel prerequisite failed, return undef, feature %s", $feature_name);
                     return WebService::GrowthBook::FeatureResult->new(id => $feature_name, value => undef, source => "prerequisite");
@@ -136,19 +140,19 @@ class WebService::GrowthBook {
                 }
                 elsif ($prereq_res eq "fail") {
                     $log->debugf("Skip rule becasue of failing prerequisite, feature %s", $feature_name);
-                    continue;
+                    next;
                 }
             }
 
             if ($rule->condition){
                 if (!eval_condition($attributes, $rule->condition)){
                     $log->debugf("Skip rule because of failed condition, feature %s", $feature_name);
-                    continue;
+                    next;
                 }
             }
 
-            if ($rule->force){
-                if(!$self->is_included_in_rollout($rule->seed || $feature_name,
+            if (defined($rule->force)){
+                if(!$self->_is_included_in_rollout($rule->seed || $feature_name,
                     $rule->hash_attribute,
                     $rule->fallback_attribute,
                     $rule->range,
@@ -159,13 +163,20 @@ class WebService::GrowthBook {
                         "Skip rule because user not included in percentage rollout, feature %s",
                         $feature_name,
                     );
-                    continue;
+                    next;
                 }
+                $log->debugf("Force value from rule, feature %s", $feature_name);
+                return WebService::GrowthBook::FeatureResult->new(
+                    value => $rule->force,
+                    source => "force",
+                    rule_id => $rule->id,
+                    feature_id => $feature_name,
+                );
             }
 
             if($rule->variations){
                 $log->warnf("Skip invalid rule, feature %s", $feature_name);
-                continue;
+                next;
             }
             my $exp = WebService::GrowthBook::Experiment->new(
                 # TODO change $feature_name to $key
@@ -218,7 +229,7 @@ class WebService::GrowthBook {
         return WebService::GrowthBook::FeatureResult->new(
             feature_id => $feature_name,
             value => $default_value,
-            source => "default" # TODO fix this, maybe not default
+            source => "defaultValue",
             );
     }
 
@@ -229,7 +240,7 @@ class WebService::GrowthBook {
             || $prev->{result}->in_experiment != $result->in_experiment
             || $prev->{result}->variation_id != $result->variation_id
         ) {
-            $assigned->{$experiment->{key}} = {
+            $assigned->{$experiment->key} = {
                 experiment => $experiment,
                 result => $result,
             };
@@ -728,16 +739,18 @@ class WebService::GrowthBook {
         my $hash_value;
         (undef, $hash_value) = $self->_get_hash_value($hash_attribute, $fallback_attribute);
         if($hash_value eq "") {
+
             return 0;
         }
 
         my $n = gbhash($seed, $hash_value, $hash_version || 1);
-
         if (!defined($n)){
+
             return 0;
         }
 
         if($range){
+
             return in_range($n, $range);
         }
         elsif($coverage){

@@ -26,6 +26,9 @@ class WebService::GrowthBook::Feature{
         else{
             $args{rules} = [];
         }
+        if(exists $args{defaultValue}){
+            $args{default_value} = delete $args{defaultValue};
+        }
         return %args;
     }
 }

@@ -39,7 +39,7 @@ is($instance->get_feature_value('not-exist-feature'), undef, "not-exist-feature 
 is($instance->get_feature_value('not-exist-feature', 123), 123, "fallback value");
 is($instance->is_on('not-exist-feature'), 0, "not-exist-feature is undef");
 is($instance->is_off('not-exist-feature'), 1, "not-exist-feature is undef");
-is($instance->is_on('string-feature'), 0, "is_on string is undef");
-is($instance->is_off('string-feature'), 1, "is_off string is undef");
+is($instance->is_on('string-feature'), 1, "is_on string is true");
+is($instance->is_off('string-feature'), 0, "is_off string is false");
 
 done_testing();

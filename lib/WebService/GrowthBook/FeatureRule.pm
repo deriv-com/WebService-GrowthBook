@@ -2,6 +2,7 @@ package WebService::GrowthBook::FeatureRule;
 use strict;
 use warnings;
 no indirect;
+use WebService::GrowthBook::Util qw(adjust_args_camel_to_snake);
 use Object::Pad;
 # TODO check every class's feild if they are camelCase or snake_case
 class WebService::GrowthBook::FeatureRule {
@@ -12,10 +13,10 @@ class WebService::GrowthBook::FeatureRule {
     field $coverage :param :reader //= undef;
     field $condition :param :reader //= undef;
     field $namespace :param :reader //= undef;
-    field $fore :param :reader //= undef;
-    field $hash_atrribute :param :reader //= 'id';
+    field $force :param :reader //= undef;
+    field $hash_attribute :param :reader //= 'id';
     field $fallback_attribute :param :reader //= undef;
-    field $hashVersion :param :reader //= 1;
+    field $hash_version :param :reader //= 1;
     field $range :param :reader //= undef;
     field $ranges :param :reader //= undef;
     field $meta :param :reader //= undef;
@@ -24,14 +25,23 @@ class WebService::GrowthBook::FeatureRule {
     field $name :param :reader //= undef;
     field $phase :param :reader //= undef;
     field $disable_sticky_bucketing :param :reader //= undef;
-    field $bucketVersion :param :reader //= 0;
-    field $minBucketVersion :param :reader //= 0;
-    field $parentConditions :param :reader //= undef;
+    field $bucket_version :param :reader //= 0;
+    field $min_bucket_version :param :reader //= 0;
+    field $parent_conditions :param :reader //= undef;
+
+    # TODO apply this one to all classes
+    sub BUILDARGS {
+        my $class = shift;
+        my %args = @_;
+        adjust_args_camel_to_snake(\%args);
+        return %args;
+    }
 
     ADJUST {
         if($disable_sticky_bucketing){
             $fallback_attribute = undef;
         }
+
     }
     
     method to_hash {
@@ -43,10 +53,10 @@ class WebService::GrowthBook::FeatureRule {
             coverage => $coverage,
             condition => $condition,
             namespace => $namespace,
-            fore => $fore,
-            hash_atrribute => $hash_atrribute,
+            force => $force,
+            hash_attribute => $hash_attribute,
             fallback_attribute => $fallback_attribute,
-            hashVersion => $hashVersion,
+            hash_version => $hash_version,
             range => $range,
             ranges => $ranges,
             meta => $meta,
@@ -55,9 +65,9 @@ class WebService::GrowthBook::FeatureRule {
             name => $name,
             phase => $phase,
             disable_sticky_bucketing => $disable_sticky_bucketing,
-            bucketVersion => $bucketVersion,
-            minBucketVersion => $minBucketVersion,
-            parentConditions => $parentConditions,
+            bucket_version => $bucket_version,
+            min_bucket_version => $min_bucket_version,
+            parent_conditions => $parent_conditions,
         };
     }
 }

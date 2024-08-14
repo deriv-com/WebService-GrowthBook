@@ -2,10 +2,11 @@ package WebService::GrowthBook::Result;
 
 use strict;
 use warnings;
+no indirect;
 use Object::Pad;
 
 
-class WebService::Growthbook::Result{
+class WebService::GrowthBook::Result{
     field $variation_id :param :reader;
     field $in_experiment :param :reader;
     field $value :param :reader;
