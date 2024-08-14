@@ -15,14 +15,24 @@ class WebService::GrowthBook::Result{
     field $hash_value :param :reader;
     field $feature_id :param :reader;
     field $bucket :param :reader //= undef;
-    field $sticky_bucket_used :param :reader //= 0;
+    field $sticky_bucket_used :param :reader //= undef;
     field $meta :param //= undef;
-
     field $key :reader //= undef;
+
     field $name :reader //= "";
     field $passthrough :reader //= 0;; 
 
+    sub BUILDARGS {
+        my $class = shift;
+        my %args = @_;
+        use Data::Dumper;
+        print STDERR "exp result:";
+        print STDERR Dumper(\%args);
+        return %args;
+    }
+
     ADJUST {
+        $key = $variation_id ? "$variation_id" : undef;
         $name = $meta->{name} if exists $meta->{name};
         $key = $meta->{key} if exists $meta->{key};
         $passthrough = $meta->{passthrough} if exists $meta->{passthrough};
@@ -30,17 +40,17 @@ class WebService::GrowthBook::Result{
 
     method to_hash {
         my %obj = (
-            feature_id         => $feature_id,
-            variation_id       => $variation_id,
-            in_experiment      => $in_experiment,
+            featureId         => $feature_id,
+            variationId       => $variation_id,
+            inExperiment      => $in_experiment,
             value              => $value,
-            hash_used          => $hash_used,
-            hash_attribute     => $hash_attribute,
-            hash_value         => $hash_value,
+            hashUsed          => $hash_used,
+            hashAttribute     => $hash_attribute,
+            hashValue         => $hash_value,
             key                => $key,
-            sticky_bucket_used => $sticky_bucket_used,
         );
     
+        $obj{stickyBucketUsed} = $sticky_bucket_used if $sticky_bucket_used;
         $obj{bucket} = $self->bucket if defined $bucket;
         $obj{name} = $name if $name;
         $obj{passthrough} = 1 if $self->passthrough;

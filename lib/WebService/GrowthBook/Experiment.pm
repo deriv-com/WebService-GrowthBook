@@ -8,7 +8,7 @@ class WebService::GrowthBook::Experiment {
     field $key :param :reader;
     field $variations :param :reader //= [];
     field $weights :param :reader //= [];
-    field $active :param :reader //= undef;
+    field $active :param :reader //= 1;
     field $status :param :reader //= "running";
     field $coverage :param :reader //= undef;
     field $condition :param :reader //= undef;

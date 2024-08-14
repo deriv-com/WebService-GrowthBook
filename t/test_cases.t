@@ -70,6 +70,12 @@ sub test_feature{
         my ($name, $ctx, $key, $expected) = $case->@*;
         my $gb = WebService::GrowthBook->new(%$ctx);
         my $res = $gb->eval_feature($key);
+        # I don't know why there is such line, but it is in py version test.
+        if(exists($expected->{experiment})){
+            $expected->{experiment} = WebService::GrowthBook::Experiment->new(%{$expected->{experiment}})->to_hash;
+        }
+        diag(explain($res->to_hash));
+        diag(explain($expected));
         is_deeply($res->to_hash, $expected, $name) or exit 0;
     }
 }

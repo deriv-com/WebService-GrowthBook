@@ -222,7 +222,7 @@ class WebService::GrowthBook {
                 value => $result->value,
                 source => "experiment",
                 experiment => $exp,
-                result => $result,
+                experiment_result => $result,
                 rule_id => $rule->id,
                 feature_id => $feature_name,
             );
@@ -502,6 +502,7 @@ class WebService::GrowthBook {
         }
 
         # 13. Build the result object
+        print STDERR "found sticky bucket $found_sticky_bucket\n";
         my $result = $self->_get_experiment_result(
             $experiment, 
             variation_id => $assigned, 
