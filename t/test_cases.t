@@ -15,13 +15,13 @@ my $test_cases = decode_json_text($json_file->slurp_utf8);
 my $eval_condition_cases = $test_cases->{evalCondition};
 for my $case (@$eval_condition_cases){
     my ($name, $condition, $attributes, $expected_result) = $case->@*;
-    #is(eval_condition($attributes, $condition), $expected_result, $name) or exit(0);
+    is(eval_condition($attributes, $condition), $expected_result, $name) or exit(0);
 }
 
 my $version_compare_cases = $test_cases->{versionCompare};
-#test_version_compare($version_compare_cases);
-#test_hash($test_cases->{hash});
-#test_get_bucket_range($test_cases->{getBucketRange});
+test_version_compare($version_compare_cases);
+test_hash($test_cases->{hash});
+test_get_bucket_range($test_cases->{getBucketRange});
 test_feature($test_cases->{feature});
 ok(1);
 done_testing;
@@ -68,14 +68,16 @@ sub test_feature{
     my $cases = shift;
     for my $case ($cases->@*){
         my ($name, $ctx, $key, $expected) = $case->@*;
-        next unless $name eq 'empty experiment rule - c' or $name eq 'empty experiment rule - a';
+        #next unless $name eq 'empty experiment rule - c' or $name eq 'empty experiment rule - a';
         my $gb = WebService::GrowthBook->new(%$ctx);
         my $res = $gb->eval_feature($key);
         # I don't know why there is such line, but it is in py version test.
         if(exists($expected->{experiment})){
             $expected->{experiment} = WebService::GrowthBook::Experiment->new(%{$expected->{experiment}})->to_hash;
         }
+        diag("result:");
         diag(explain($res->to_hash));
+        diag("expected:");
         diag(explain($expected));
         is_deeply($res->to_hash, $expected, $name) or exit 0;
     }

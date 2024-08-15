@@ -2,6 +2,7 @@ package WebService::GrowthBook::Experiment;
 
 use strict;
 use warnings;
+use WebService::GrowthBook::Util qw(adjust_args_camel_to_snake);
 use Object::Pad;
 
 class WebService::GrowthBook::Experiment {
@@ -30,6 +31,13 @@ class WebService::GrowthBook::Experiment {
     field $bucket_version :param :reader //= 0;
     field $min_bucket_version :param :reader //= 0;
     field $parent_conditions :param :reader //= undef;
+
+    sub BUILDARGS {
+        my $class = shift;
+        my %args = @_;
+        adjust_args_camel_to_snake(\%args);
+        return %args;
+    }
 
 
     method update($data) {
