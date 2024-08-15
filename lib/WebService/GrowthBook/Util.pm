@@ -22,8 +22,6 @@ sub fnv1a32 {
     return $hval;
 }
 sub gbhash {
-    use Data::Dumper;
-    print STDERR 'in gbhash ' .Dumper(\@_);
     my ($seed, $value, $version) = @_;
 
     if ($version == 2) {
@@ -106,8 +104,6 @@ sub get_bucket_ranges {
 
 sub choose_variation {
     my ($n, $ranges) = @_;
-    use Data::Dumper;
-    print STDERR "in choose_variation $n " . Dumper($ranges) . "\n";
     for (my $i = 0; $i < @$ranges; $i++) {
         if (in_range($n, $ranges->[$i])) {
             return $i;

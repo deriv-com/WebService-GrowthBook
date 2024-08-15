@@ -224,13 +224,11 @@ class WebService::GrowthBook {
                 $log->debugf(
                     "Skip rule because user not included in experiment, feature %s", $feature_name
                 );
-                print STDERR "here 1\n";
                 next;
             }
             if ($result->passthrough) {
                 $log->debugf("Continue to next rule, feature %s", $feature_name);
 
-                print STDERR "here 2\n";
                 next;
             }
             
@@ -351,7 +349,6 @@ class WebService::GrowthBook {
             );
             $found_sticky_bucket = $sticky_bucket->{variation} >= 0;
             $assigned = $sticky_bucket->{variation};
-            print STDERR "assigned $assigned " . __LINE__ . "\n";
             $sticky_bucket_version_is_blocked = $sticky_bucket->{versionIsBlocked};
         }
 
@@ -475,7 +472,6 @@ class WebService::GrowthBook {
                 scalar @{$experiment->variations}, defined $c ? $c : 1, $experiment->weights
             );
             $assigned = choose_variation($n, $ranges);
-            print STDERR "assigned $assigned " . __LINE__ . "\n";
 
         }
 
@@ -522,7 +518,6 @@ class WebService::GrowthBook {
         }
 
         # 13. Build the result object
-        print STDERR "assigned $assigned\n";
         my $result = $self->_get_experiment_result(
             $experiment, 
             variation_id => $assigned, 
@@ -725,15 +720,11 @@ class WebService::GrowthBook {
 
     method _get_experiment_result($experiment, %args){ 
         my $variation_id = $args{variation_id} // -1;
-        print STDERR "variation_id $variation_id\n"; 
         my $hash_used = $args{hash_used} // 0;
         my $feature_id = $args{feature_id};
         my $bucket = $args{bucket};
         my $sticky_bucket_used = $args{sticky_bucket_used} // 0;
         my $in_experiment = 1;
-        use Carp qw(longmess);
-        print STDERR longmess();
-        use Data::Dumper;
         if ($variation_id < 0 || $variation_id > @{$experiment->variations} - 1) {
             $variation_id = 0;
             $in_experiment = 0;

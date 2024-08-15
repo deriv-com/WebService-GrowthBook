@@ -75,10 +75,6 @@ sub test_feature{
         if(exists($expected->{experiment})){
             $expected->{experiment} = WebService::GrowthBook::Experiment->new(%{$expected->{experiment}})->to_hash;
         }
-        diag("result:");
-        diag(explain($res->to_hash));
-        diag("expected:");
-        diag(explain($expected));
-        is_deeply($res->to_hash, $expected, $name) or exit 0;
+        is_deeply($res->to_hash, $expected, $name);
     }
 }
