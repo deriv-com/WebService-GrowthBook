@@ -15,7 +15,7 @@ use WebService::GrowthBook::Feature;
 use WebService::GrowthBook::FeatureResult;
 use WebService::GrowthBook::InMemoryFeatureCache;
 use WebService::GrowthBook::Eval qw(eval_condition);
-use WebService::GrowthBook::Util qw(gbhash in_range get_query_string_override get_bucket_ranges choose_variation);
+use WebService::GrowthBook::Util qw(gbhash in_range get_query_string_override get_bucket_ranges choose_variation in_namespace adjust_args_camel_to_snake);
 use WebService::GrowthBook::Experiment;
 use WebService::GrowthBook::Result;
 
@@ -70,6 +70,14 @@ class WebService::GrowthBook {
     field $tracked = {};
     field $assigned = {};
     field $subscriptions = [];
+    
+    sub BUILDARGS{
+        my $class = shift;
+        my %args = @_;
+        adjust_args_camel_to_snake(\%args);
+        return %args;
+    }
+
     ADJUST {
         $tracking_callback //= $on_experiment_viewed;
         if($features){
@@ -128,7 +136,6 @@ class WebService::GrowthBook {
 
         my $feature = $features->{$feature_name};
         for my $rule (@{$feature->rules}){
-            print STDERR "RULE: " . Dumper($rule->to_hash());
             $log->debugf("Evaluating feature %s, rule %s", $feature_name, $rule->to_hash());
             if ($rule->parent_conditions){
                 my $prereq_res = $self->eval_prereqs($rule->parent_conditions, $stack);
@@ -336,6 +343,7 @@ class WebService::GrowthBook {
             );
             $found_sticky_bucket = $sticky_bucket->{variation} >= 0;
             $assigned = $sticky_bucket->{variation};
+            print STDERR "assigned $assigned " . __LINE__ . "\n";
             $sticky_bucket_version_is_blocked = $sticky_bucket->{versionIsBlocked};
         }
 
@@ -359,7 +367,7 @@ class WebService::GrowthBook {
                     return $self->_get_experiment_result($experiment, feature_id => $feature_id);
                 }
             }
-            elsif ($experiment->namespace && !$self->_in_namespace($hash_value, $experiment->namespace)) {
+            elsif ($experiment->namespace && !in_namespace($hash_value, $experiment->namespace)) {
                 $log->debugf("Skip experiment %s because of namespace", $experiment->key);
                 return $self->_get_experiment_result($experiment, feature_id => $feature_id);
             }
@@ -459,6 +467,8 @@ class WebService::GrowthBook {
                 scalar @{$experiment->variations}, defined $c ? $c : 1, $experiment->weights
             );
             $assigned = choose_variation($n, $ranges);
+            print STDERR "assigned $assigned " . __LINE__ . "\n";
+
         }
 
         # Unenroll if any prior sticky buckets are blocked by version
@@ -504,6 +514,7 @@ class WebService::GrowthBook {
         }
 
         # 13. Build the result object
+        print STDERR "assigned $assigned\n";
         my $result = $self->_get_experiment_result(
             $experiment, 
             variation_id => $assigned, 

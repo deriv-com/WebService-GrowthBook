@@ -6,7 +6,7 @@ use URI;
 use List::Util qw(sum);
 use String::CamelCase qw(decamelize);
 
-our @EXPORT_OK = qw(gbhash in_range get_query_string_override get_equal_weights get_bucket_ranges adjust_args_camel_to_snake choose_variation);
+our @EXPORT_OK = qw(gbhash in_range get_query_string_override get_equal_weights get_bucket_ranges adjust_args_camel_to_snake choose_variation in_namespace);
 
 sub fnv1a32 {
     my ($str) = @_;
@@ -22,6 +22,8 @@ sub fnv1a32 {
     return $hval;
 }
 sub gbhash {
+    use Data::Dumper;
+    print STDERR 'in gbhash ' .Dumper(\@_);
     my ($seed, $value, $version) = @_;
 
     if ($version == 2) {
@@ -104,6 +106,8 @@ sub get_bucket_ranges {
 
 sub choose_variation {
     my ($n, $ranges) = @_;
+    use Data::Dumper;
+    print STDERR "in choose_variation $n " . Dumper($ranges) . "\n";
     for (my $i = 0; $i < @$ranges; $i++) {
         if (in_range($n, $ranges->[$i])) {
             return $i;
@@ -123,4 +127,10 @@ sub adjust_args_camel_to_snake {
     }
 }
 
+sub in_namespace {
+    my ($user_id, $namespace) = @_;
+    my $n = gbhash("__" . $namespace->[0], $user_id, 1);
+    return 0 unless defined $n;
+    return $namespace->[1] <= $n && $n < $namespace->[2];
+}
 1;
