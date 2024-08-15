@@ -183,7 +183,6 @@ class WebService::GrowthBook {
                     next;
                 }
                 $log->debugf("Force value from rule, feature %s", $feature_name);
-                # TODO here ?
                 return WebService::GrowthBook::FeatureResult->new(
                     value => $rule->force,
                     source => "force",
@@ -219,7 +218,6 @@ class WebService::GrowthBook {
                 bucket_version          => $rule->bucket_version,
                 min_bucket_version      => $rule->min_bucket_version,
             ); 
-            # TODO here ?
             my $result = $self->_run($exp, $feature_name);
             $self->_fire_subscriptions($exp, $result);
             if (!$result->in_experiment) {
@@ -312,7 +310,6 @@ class WebService::GrowthBook {
 
         # 4. If variation is forced in the context
         if (exists $forced_variations->{$experiment->key}) {
-            # TODO here?
             $log->debugf(
                 "Force variation %d from GrowthBook context, experiment %s",
                 $forced_variations->{$experiment->key},
@@ -368,7 +365,6 @@ class WebService::GrowthBook {
 
         # Some checks are not needed if we already have a sticky bucket
         else {
-            # TODO here ? 
             if ($experiment->filters){
 
                 # 7. Filtered out / not in namespace
