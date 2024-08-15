@@ -25,14 +25,11 @@ class WebService::GrowthBook::Result{
     sub BUILDARGS {
         my $class = shift;
         my %args = @_;
-        use Data::Dumper;
-        print STDERR "exp result:";
-        print STDERR Dumper(\%args);
         return %args;
     }
 
     ADJUST {
-        $key = $variation_id ? "$variation_id" : undef;
+        $key = defined($variation_id) ? "$variation_id" : undef;
         $name = $meta->{name} if exists $meta->{name};
         $key = $meta->{key} if exists $meta->{key};
         $passthrough = $meta->{passthrough} if exists $meta->{passthrough};

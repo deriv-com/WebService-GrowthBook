@@ -128,6 +128,7 @@ class WebService::GrowthBook {
 
         my $feature = $features->{$feature_name};
         for my $rule (@{$feature->rules}){
+            print STDERR "RULE: " . Dumper($rule->to_hash());
             $log->debugf("Evaluating feature %s, rule %s", $feature_name, $rule->to_hash());
             if ($rule->parent_conditions){
                 my $prereq_res = $self->eval_prereqs($rule->parent_conditions, $stack);
@@ -502,7 +503,6 @@ class WebService::GrowthBook {
         }
 
         # 13. Build the result object
-        print STDERR "found sticky bucket $found_sticky_bucket\n";
         my $result = $self->_get_experiment_result(
             $experiment, 
             variation_id => $assigned, 
@@ -705,6 +705,7 @@ class WebService::GrowthBook {
 
     method _get_experiment_result($experiment, %args){ 
         my $variation_id = $args{variation_id} // -1;
+        print STDERR "variation_id $variation_id\n"; 
         my $hash_used = $args{hash_used} // 0;
         my $feature_id = $args{feature_id};
         my $bucket = $args{bucket};
@@ -712,9 +713,7 @@ class WebService::GrowthBook {
         my $in_experiment = 1;
         use Carp qw(longmess);
         print STDERR longmess();
-        print STDERR "variation_id: $variation_id\n";
         use Data::Dumper;
-        print STDERR Dumper($experiment->variations);
         if ($variation_id < 0 || $variation_id > @{$experiment->variations} - 1) {
             $variation_id = 0;
             $in_experiment = 0;
@@ -726,7 +725,6 @@ class WebService::GrowthBook {
         }
     
         my ($hash_attribute, $hash_value) = $self->_get_orig_hash_value($experiment->hash_attribute, $experiment->fallback_attribute);
-    
         return WebService::GrowthBook::Result->new(
             feature_id         => $feature_id,
             in_experiment      => $in_experiment,

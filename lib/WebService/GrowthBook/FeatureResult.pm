@@ -39,8 +39,6 @@ class WebService::GrowthBook::FeatureResult{
         $data{ruleId} = $rule_id if defined $rule_id;
         $data{experiment} = $experiment->to_hash() if defined $experiment;
         $data{experimentResult} = $experiment_result->to_hash() if defined $experiment_result;
-        use Data::Dumper;
-        print STDERR Dumper(\%data); 
         return \%data;
     }
 }
