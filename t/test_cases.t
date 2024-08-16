@@ -4,7 +4,7 @@ use Test::Warnings;
 use Test::More;
 use WebService::GrowthBook;
 use WebService::GrowthBook::Eval qw(eval_condition);
-use WebService::GrowthBook::Util qw(gbhash get_bucket_ranges choose_variation get_query_string_override in_namespace);
+use WebService::GrowthBook::Util qw(gbhash get_bucket_ranges choose_variation get_query_string_override in_namespace get_equal_weights);
 use JSON::MaybeUTF8 qw(decode_json_text);
 use Path::Tiny;
 use FindBin qw($Bin);
@@ -116,5 +116,13 @@ sub test_in_namespace{
     for my $case ($cases->@*){
         my ($name, $id, $namespace, $expected) = $case->@*;
         is(in_namespace($id, $namespace), $expected, $name);
+    }
+}
+
+sub test_get_equal_weights{
+    my $cases = shift;
+    for my $case ($cases->@*){
+        my ($num_variations,$expected) = $case->@*;
+        is_deeply(get_equal_weights($num_variations), $expected, "get_equal_weights");
     }
 }
