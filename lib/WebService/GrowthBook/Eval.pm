@@ -161,14 +161,14 @@ sub eval_operator_condition {
     if ($operator eq '$eq') {
         try {
             return compare($attribute_value, $condition_value) == 0;
-        } 
+        }
         catch {
             return 0;
         }
     } elsif ($operator eq '$ne') {
         try {
             return compare($attribute_value, $condition_value) != 0;
-        } 
+        }
         catch {
             return 0;
         }

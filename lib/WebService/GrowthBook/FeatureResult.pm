@@ -32,7 +32,7 @@ class WebService::GrowthBook::FeatureResult{
             on => $self->on,
             off => $self->off,
         );
-    
+
         $data{ruleId} = $rule_id if defined $rule_id;
         $data{experiment} = $experiment->to_hash() if defined $experiment;
         $data{experimentResult} = $experiment_result->to_hash() if defined $experiment_result;

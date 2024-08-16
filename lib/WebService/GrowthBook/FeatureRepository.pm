@@ -20,7 +20,7 @@ class WebService::GrowthBook::FeatureRepository {
         die "Invalid cache object $new_cache" unless blessed($new_cache) && $new_cache->isa('WebService::GrowthBook::AbstractFeatureCache');
         $cache = $new_cache;
     }
-    
+
     method clear_cache(){
         $cache->clear();
     }
@@ -30,19 +30,19 @@ class WebService::GrowthBook::FeatureRepository {
         if($features){
             $log->debug("Features loaded from cache");
             return $features;
-        } 
+        }
         $features = $self->_fetch_features($api_host, $client_key);
         if($features){
             $cache->set($key, $features, $ttl);
             $log->debug("Features loaded from GrowthBook API, set in cache");
         }
-        
+
         return $features;
     }
 
     method _fetch_features($api_host, $client_key){
         my $decoded = $self->_fetch_and_decode($api_host, $client_key);
-        
+
         # TODO decrypt here
         if(exists $decoded->{features}){
             return $decoded->{features};
@@ -51,8 +51,8 @@ class WebService::GrowthBook::FeatureRepository {
             $log->warn("GrowthBook API response missing features");
             return
         }
-    }    
-    
+    }
+
     method _fetch_and_decode($api_host, $client_key){
         try {
             my $r = $self->_get($self->_get_features_url($api_host, $client_key));

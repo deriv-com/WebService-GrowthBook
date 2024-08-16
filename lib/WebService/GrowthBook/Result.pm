@@ -20,7 +20,7 @@ class WebService::GrowthBook::Result{
     field $key :reader //= undef;
 
     field $name :reader //= "";
-    field $passthrough :reader //= 0;; 
+    field $passthrough :reader //= 0;;
 
     sub BUILDARGS {
         my $class = shift;
@@ -46,12 +46,12 @@ class WebService::GrowthBook::Result{
             hashValue         => $hash_value,
             key                => $key,
         );
-    
+
         $obj{stickyBucketUsed} = $sticky_bucket_used if $sticky_bucket_used;
         $obj{bucket} = $self->bucket if defined $bucket;
         $obj{name} = $name if $name;
         $obj{passthrough} = 1 if $self->passthrough;
-    
+
         return \%obj;
     }
 

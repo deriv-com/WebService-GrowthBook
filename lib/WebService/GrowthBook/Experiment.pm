@@ -67,13 +67,13 @@ class WebService::GrowthBook::Experiment {
             name                    => $name,
             phase                   => $phase,
         );
-    
+
         $obj{fallback_attribute} = $fallback_attribute if defined $fallback_attribute;
         $obj{disable_sticky_bucketing} = 1 if $disable_sticky_bucketing;
         $obj{bucket_version} = bucket_version if $bucket_version;
         $obj{min_bucket_version} = min_bucket_version if $min_bucket_version;
         $obj{parent_conditions} = parent_conditions if $parent_conditions;
-    
+
         return \%obj;
     }
 }

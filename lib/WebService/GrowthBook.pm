@@ -70,7 +70,7 @@ class WebService::GrowthBook {
     field $tracked = {};
     field $assigned = {};
     field $subscriptions = [];
-    
+
     sub BUILDARGS{
         my ($class, %args) = @_;
         adjust_args_camel_to_snake(\%args);
@@ -105,19 +105,19 @@ class WebService::GrowthBook {
             }
         }
     }
-    
+
     method is_on($feature_name) {
         my $result = $self->eval_feature($feature_name);
         return undef unless defined($result);
         return $result->on;
     }
-    
+
     method is_off($feature_name) {
         my $result = $self->eval_feature($feature_name);
         return undef unless defined($result);
         return $result->off;
     }
-    
+
     # I don't know why it is called stack. In fact it is a hash/dict
     method $eval_feature($feature_name, $stack){
         $log->debug("Evaluating feature $feature_name");
@@ -130,7 +130,7 @@ class WebService::GrowthBook {
             $log->warnf("Cyclic prerequisite detected, stack: %s", $stack);
             return WebService::GrowthBook::FeatureResult->new(id => $feature_name, value => undef, source => "cyclicPrerequisite");
         }
-        
+
         $stack->{$feature_name} = 1;
 
         my $feature = $features->{$feature_name};
@@ -216,7 +216,7 @@ class WebService::GrowthBook {
                 disable_sticky_bucketing => $rule->disable_sticky_bucketing,
                 bucket_version          => $rule->bucket_version,
                 min_bucket_version      => $rule->min_bucket_version,
-            ); 
+            );
             my $result = $self->_run($exp, $feature_name);
             $self->_fire_subscriptions($exp, $result);
             if (!$result->in_experiment) {
@@ -230,7 +230,7 @@ class WebService::GrowthBook {
 
                 next;
             }
-            
+
             $log->debugf("Assign value from experiment, feature %s", $feature_name);
             return WebService::GrowthBook::FeatureResult->new(
                 value => $result->value,
@@ -242,7 +242,7 @@ class WebService::GrowthBook {
             );
         }
         my $default_value = $feature->default_value;
-    
+
         return WebService::GrowthBook::FeatureResult->new(
             feature_id => $feature_name,
             value => $default_value,
@@ -286,7 +286,7 @@ class WebService::GrowthBook {
                 "Skip experiment %s because GrowthBook is disabled", $experiment->key
             );
             return $self->_get_experiment_result($experiment, feature_id => $feature_id);
-        }      
+        }
         # 2.5. If the experiment props have been overridden, merge them in
         if (exists $overrides->{$experiment->key}) {
             $experiment->update($overrides->{$experiment->{key}});
@@ -334,7 +334,7 @@ class WebService::GrowthBook {
         }
 
         my $assigned = -1;
-        
+
         my $found_sticky_bucket = 0;
         my $sticky_bucket_version_is_blocked = 0;
         if ($sticky_bucket_service && !$experiment->disableStickyBucketing) {
@@ -401,7 +401,7 @@ class WebService::GrowthBook {
                     "Skip experiment %s because user failed the condition", $experiment->key
                 );
                 return $self->_get_experiment_result($experiment, feature_id => $feature_id);
-            } 
+            }
 
             # 8.05 Exclude if parent conditions are not met
             if ($experiment->parent_conditions) {
@@ -518,11 +518,11 @@ class WebService::GrowthBook {
 
         # 13. Build the result object
         my $result = $self->_get_experiment_result(
-            $experiment, 
-            variation_id => $assigned, 
-            hash_used => 1, 
-            feature_id => $feature_id, 
-            bucket => $n, 
+            $experiment,
+            variation_id => $assigned,
+            hash_used => 1,
+            feature_id => $feature_id,
+            bucket => $n,
             sticky_bucket_used => $found_sticky_bucket
         );
 
@@ -550,18 +550,18 @@ class WebService::GrowthBook {
 
         # 15. Return the result
         $log->debugf("Assigned variation %d in experiment %s", $assigned, $experiment->key);
-        return $result; 
+        return $result;
     }
 
     method _track($experiment, $result) {
-    
+
         return unless $tracking_callback;
-    
+
         my $key = $result->hash_attribute
             . $result->hash_value
             . $experiment->key
             . $result->variation_id;
-    
+
         unless ($tracked->{$key}) {
             eval {
                 $tracking_callback->($experiment, $result);
@@ -575,11 +575,11 @@ class WebService::GrowthBook {
     method _generate_sticky_bucket_assignment_doc($attribute_name, $attribute_value, $assignments){
         my $key = $attribute_name . "||" . $attribute_value;
         my $existing_assignments = $sticky_bucket_assignment_docs->{$key}{assignments} // {};
-    
+
         my %new_assignments = (%$existing_assignments, %$assignments);
 
         my $changed = !Compare($existing_assignments, \%new_assignments);
-    
+
         return {
             key => $key,
             doc => {
@@ -592,19 +592,19 @@ class WebService::GrowthBook {
     }
 
     method _url_is_valid($pattern) {
-    
+
         return 0 unless $url;
-    
+
         eval {
             my $r = qr/$pattern/;
             if ($self->{_url} =~ $r) {
                 return 1;
             }
-    
+
             my $path_only = $url;
             $path_only =~ s/^[^\/]*\//\//;
             $path_only =~ s/^https?:\/\///;
-    
+
             if ($path_only =~ $r) {
                 return 1;
             }
@@ -615,18 +615,18 @@ class WebService::GrowthBook {
     }
 
     method _is_filtered_out($filters) {
-    
+
         foreach my $filter (@$filters) {
             my ($dummy, $hash_value) = $self->_get_hash_value($filter->{attribute} // "id");
             if ($hash_value eq "") {
                 return 0;
             }
-    
+
             my $n = gbhash($filter->{seed} // "", $hash_value, $filter->{hashVersion} // 2);
             if (!defined $n) {
                 return 0;
             }
-    
+
             my $filtered = 0;
             foreach my $range (@{$filter->{ranges}}) {
                 if (in_range($n, $range)) {
@@ -639,17 +639,17 @@ class WebService::GrowthBook {
             }
         }
         return 0;
-    }    
+    }
 
     method _get_sticky_bucket_assignments($attr = '', $fallback = ''){
         my %merged;
-    
+
         my ($dummy, $hash_value) = $self->_get_hash_value($attr);
         my $key = "$attr||$hash_value";
         if (exists $sticky_bucket_assignment_docs->{$key}) {
             %merged = %{ $sticky_bucket_assignment_docs->{$key}{assignments} };
         }
-    
+
         if ($fallback) {
             ($dummy, $hash_value) = $self->_get_hash_value($fallback);
             $key = "$fallback||$hash_value";
@@ -660,11 +660,11 @@ class WebService::GrowthBook {
                 }
             }
         }
-    
+
         return \%merged;
     }
 
-    method _get_sticky_bucket_variation($experiment_key, $bucket_version = 0, $min_bucket_version = 0, $meta = {}, $hash_attribute = undef, $fallback_attribute = undef){ 
+    method _get_sticky_bucket_variation($experiment_key, $bucket_version = 0, $min_bucket_version = 0, $meta = {}, $hash_attribute = undef, $fallback_attribute = undef){
         my $id = $self->_get_sticky_bucket_experiment_key($experiment_key, $bucket_version);
 
 
@@ -717,7 +717,7 @@ class WebService::GrowthBook {
         return $experiment_key . "__" . $bucket_version;
     }
 
-    method _get_experiment_result($experiment, %args){ 
+    method _get_experiment_result($experiment, %args){
         my $variation_id = $args{variation_id} // -1;
         my $hash_used = $args{hash_used} // 0;
         my $feature_id = $args{feature_id};
@@ -728,12 +728,12 @@ class WebService::GrowthBook {
             $variation_id = 0;
             $in_experiment = 0;
         }
-    
+
         my $meta;
         if ($experiment->meta) {
             $meta = $experiment->meta->[$variation_id];
         }
-    
+
         my ($hash_attribute, $hash_value) = $self->_get_orig_hash_value($experiment->hash_attribute, $experiment->fallback_attribute);
         return WebService::GrowthBook::Result->new(
             feature_id         => $feature_id,
@@ -782,11 +782,11 @@ class WebService::GrowthBook {
         ($attr, $val) = $self->_get_orig_hash_value($attr, $fallback_attr);
         return ($attr, "$val");
     }
-    
+
     method _get_orig_hash_value($attr, $fallback_attr){
         $attr ||= "id";
         my $val = "";
-        
+
         if (exists $attributes->{$attr}) {
             $val = $attributes->{$attr} || "";
         } elsif (exists $user->{$attr}) {
@@ -800,23 +800,23 @@ class WebService::GrowthBook {
             } elsif (exists $user->{$fallback_attr}) {
                 $val = $user->{$fallback_attr} || "";
             }
-        
+
             if (!$val || $val ne "") {
                 $attr = $fallback_attr;
             }
         }
-        
+
         return ($attr, $val);
     }
 
     method eval_prereqs($parent_conditions, $stack){
         foreach my $parent_condition (@$parent_conditions) {
             my $parent_res = $self->$eval_feature($parent_condition->{id}, $stack);
-    
+
             if ($parent_res->{source} eq "cyclicPrerequisite") {
                 return "cyclic";
             }
-    
+
             if (!eval_condition({ value => $parent_res->{value} }, $parent_condition->{condition})) {
                 if ($parent_condition->{gate}) {
                     return "gate";
@@ -829,7 +829,7 @@ class WebService::GrowthBook {
     method eval_feature($feature_name){
         return $self->$eval_feature($feature_name, {});
     }
-   
+
     method get_feature_value($feature_name, $fallback = undef){
         my $result = $self->eval_feature($feature_name);
         return $fallback unless defined($result->value);
@@ -840,7 +840,7 @@ class WebService::GrowthBook {
         my $result = $self->_run($experiment);
         $self->_fire_subscriptions($experiment, $result);
         return $result;
-    }    
+    }
 }
 
 =head1 METHODS

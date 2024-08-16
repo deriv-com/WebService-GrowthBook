@@ -42,7 +42,7 @@ class WebService::GrowthBook::FeatureRule {
         }
 
     }
-    
+
     method to_hash {
         return {
             id => $id,

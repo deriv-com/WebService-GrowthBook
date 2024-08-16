@@ -8,7 +8,7 @@ use Object::Pad;
 
 class WebService::GrowthBook::AbstractFeatureCache {
     method get($key){
-        die "get not implemented";        
+        die "get not implemented";
     }
     method set($key, $value, $ttl){
         die "set not implemented";
