@@ -80,7 +80,8 @@ sub eval_and {
 sub eval_condition_value {
     my ($condition_value, $attribute_value) = @_;
     if (ref($condition_value) eq 'HASH' && is_operator_object($condition_value)) {
-        while (my ($key, $value) = each %$condition_value) {
+        for my $key (keys %$condition_value){
+            my $value = $condition_value->{$key};
             if (!eval_operator_condition($key, $attribute_value, $value)) {
                 return 0;  # False
             }
