@@ -655,8 +655,8 @@ class WebService::GrowthBook {
             $key = "$fallback||$hash_value";
             if (exists $self->{_sticky_bucket_assignment_docs}{$key}) {
                 # Merge the fallback assignments, but don't overwrite existing ones
-                while (my ($k, $v) = each %{ $sticky_bucket_assignment_docs->{$key}{assignments} }) {
-                    $merged{$k} //= $v;
+                for my $k (keys %{ $sticky_bucket_assignment_docs->{$key}{assignments} }) {
+                    $merged{$k} //= $sticky_bucket_assignment_docs->{$key}{assignments}{$k};
                 }
             }
         }
