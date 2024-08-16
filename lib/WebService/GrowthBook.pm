@@ -117,7 +117,7 @@ class WebService::GrowthBook {
         return $result->off;
     }
 
-    # I don't know why it is called stack. In fact it is a hash/dict
+    # I don't know why it is called stack in python version SDK. In fact it is a hash/dict
     method _eval_feature($feature_name, $stack){
         $log->debug("Evaluating feature $feature_name");
         if(!exists($features->{$feature_name})){
