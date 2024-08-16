@@ -886,7 +886,15 @@ evaluate a feature to get the value
 
     $instance->eval_feature('feature_name');
 
+=head2 set_attributes
+
+set attributes (can be set when creating gb object) and evaluate features
+
+    $instance->set_attributes({attr1 => 'value1', attr2 => 'value2'});
+    $instance->eval_feature('feature_name');
+
 =cut
+
 
 1;
 
