@@ -119,7 +119,7 @@ class WebService::GrowthBook {
     }
 
     # I don't know why it is called stack. In fact it is a hash/dict
-    method $eval_feature($feature_name, $stack){
+    method _eval_feature($feature_name, $stack){
         $log->debug("Evaluating feature $feature_name");
         if(!exists($features->{$feature_name})){
             $log->debugf("No such feature: %s", $feature_name);
@@ -196,7 +196,6 @@ class WebService::GrowthBook {
             }
             my $exp = WebService::GrowthBook::Experiment->new(
                 # TODO change $feature_name to $key
-                # TODO change that $ method to _ method
                 key                     => $rule->key || $feature_name,
                 variations              => $rule->variations,
                 coverage                => $rule->coverage,
@@ -811,7 +810,7 @@ class WebService::GrowthBook {
 
     method eval_prereqs($parent_conditions, $stack){
         foreach my $parent_condition (@$parent_conditions) {
-            my $parent_res = $self->$eval_feature($parent_condition->{id}, $stack);
+            my $parent_res = $self->_eval_feature($parent_condition->{id}, $stack);
 
             if ($parent_res->{source} eq "cyclicPrerequisite") {
                 return "cyclic";
@@ -827,7 +826,7 @@ class WebService::GrowthBook {
         return "pass";
     }
     method eval_feature($feature_name){
-        return $self->$eval_feature($feature_name, {});
+        return $self->_eval_feature($feature_name, {});
     }
 
     method get_feature_value($feature_name, $fallback = undef){
