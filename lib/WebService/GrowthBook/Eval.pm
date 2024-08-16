@@ -26,7 +26,8 @@ sub eval_condition {
         return !eval_condition($attributes, $condition->{"\$not"});
     }
 
-    while (my ($key, $value) = each %$condition) {
+    for my $key (keys %$condition){
+        my $value = $condition->{$key};
         if (!eval_condition_value($value, get_path($attributes, $key))) {
             return 0;
         }
@@ -140,18 +141,18 @@ sub is_operator_object {
 }
 
 sub compare {
-    my ($a, $b) = @_;
-    if(looks_like_number($a) && not defined($b)){
-        $b = 0;
+    my ($va, $vb) = @_;
+    if(looks_like_number($va) && not defined($vb)){
+        $vb = 0;
     }
-    if(looks_like_number($b) && not defined($a)){
-        $a = 0;
+    if(looks_like_number($vb) && not defined($va)){
+        $va = 0;
     }
-    if(looks_like_number($a) && looks_like_number($b)){
-        return $a <=> $b;
+    if(looks_like_number($va) && looks_like_number($vb)){
+        return $va <=> $vb;
     }
     else {
-        return $a cmp $b;
+        return $va cmp $vb;
     }
 }
 sub eval_operator_condition {
