@@ -96,7 +96,6 @@ class WebService::GrowthBook {
         $features = {};
         for my $feature_id (keys $features_set->%*) {
             my $feature = $features_set->{$feature_id};
-            use Data::Dumper;
             if(blessed($feature) && $feature->isa('WebService::GrowthBook::Feature')){
                 $features->{$feature->id} = $feature;
             }
