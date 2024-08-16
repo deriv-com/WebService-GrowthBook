@@ -13,8 +13,7 @@ class WebService::GrowthBook::Feature{
     field $rules :param :reader //= undef;
 
     sub BUILDARGS{
-        my $class = shift;
-        my %args = @_;
+        my ($class, %args) = @_;
         if($args{rules}){
             my $rules = $args{rules};
             my @rules_objects;

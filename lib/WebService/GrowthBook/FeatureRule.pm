@@ -31,8 +31,7 @@ class WebService::GrowthBook::FeatureRule {
 
     # TODO apply this one to all classes
     sub BUILDARGS {
-        my $class = shift;
-        my %args = @_;
+        my ($class, %args) = @_;
         adjust_args_camel_to_snake(\%args);
         return %args;
     }

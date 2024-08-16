@@ -72,8 +72,7 @@ class WebService::GrowthBook {
     field $subscriptions = [];
     
     sub BUILDARGS{
-        my $class = shift;
-        my %args = @_;
+        my ($class, %args) = @_;
         adjust_args_camel_to_snake(\%args);
         return %args;
     }

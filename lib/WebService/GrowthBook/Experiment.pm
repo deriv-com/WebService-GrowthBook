@@ -33,8 +33,7 @@ class WebService::GrowthBook::Experiment {
     field $parent_conditions :param :reader //= undef;
 
     sub BUILDARGS {
-        my $class = shift;
-        my %args = @_;
+        my ($class, %args) = @_;
         adjust_args_camel_to_snake(\%args);
         return %args;
     }
