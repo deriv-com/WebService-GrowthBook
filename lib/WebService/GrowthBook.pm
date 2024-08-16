@@ -6,7 +6,7 @@ use warnings;
 no indirect;
 use feature qw(state);
 use Object::Pad;
-use JSON::MaybeUTF8 qw(decode_json_text encode_json_text);
+use JSON::MaybeUTF8 qw(decode_json_text);
 use Scalar::Util qw(blessed);
 use Data::Compare qw(Compare);
 use Log::Any qw($log);
