@@ -18,8 +18,7 @@ for my $case (@$eval_condition_cases){
     is(eval_condition($attributes, $condition), $expected_result, $name) or exit(0);
 }
 
-my $version_compare_cases = $test_cases->{versionCompare};
-test_version_compare($version_compare_cases);
+test_version_compare($test_cases->{versionCompare});
 test_hash($test_cases->{hash});
 test_get_bucket_range($test_cases->{getBucketRange});
 test_feature($test_cases->{feature});
