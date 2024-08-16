@@ -12,12 +12,7 @@ use FindBin qw($Bin);
 my $json_file = path("$Bin/cases.json");
 my $test_cases = decode_json_text($json_file->slurp_utf8);
 
-my $eval_condition_cases = $test_cases->{evalCondition};
-for my $case (@$eval_condition_cases){
-    my ($name, $condition, $attributes, $expected_result) = $case->@*;
-    is(eval_condition($attributes, $condition), $expected_result, $name) or exit(0);
-}
-
+test_eval_condition($test_cases->{evalCondition});
 test_version_compare($test_cases->{versionCompare});
 test_hash($test_cases->{hash});
 test_get_bucket_range($test_cases->{getBucketRange});
@@ -26,6 +21,7 @@ test_run($test_cases->{run});
 test_choose_variation($test_cases->{chooseVariation});
 test_get_query_string_override($test_cases->{getQueryStringOverride});
 test_in_namespace($test_cases->{inNamespace});
+test_get_equal_weights($test_cases->{getEqualWeights});
 done_testing;
 
 sub test_version_compare{
@@ -122,6 +118,19 @@ sub test_get_equal_weights{
     my $cases = shift;
     for my $case ($cases->@*){
         my ($num_variations,$expected) = $case->@*;
-        is_deeply(get_equal_weights($num_variations), $expected, "get_equal_weights");
+        my $result = get_equal_weights($num_variations);
+        for my $i (0..$#$result){
+            $result->[$i] = sprintf("%.8f", $result->[$i]) + 0;
+        }
+        is_deeply($result, $expected, "get_equal_weights");
     }
+}
+
+sub test_eval_condition{
+    my $cases = shift;
+    for my $case (@$cases){
+        my ($name, $condition, $attributes, $expected_result) = $case->@*;
+        is(eval_condition($attributes, $condition), $expected_result, $name) or exit(0);
+    }
+
 }
