@@ -80,5 +80,4 @@ class WebService::GrowthBook::Experiment {
     }
 }
 
-
 1;
