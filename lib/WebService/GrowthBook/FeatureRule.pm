@@ -32,7 +32,6 @@ class WebService::GrowthBook::FeatureRule {
     field $min_bucket_version :param :reader //= 0;
     field $parent_conditions :param :reader //= undef;
 
-    # TODO apply this one to all classes
     sub BUILDARGS {
         my ($class, %args) = @_;
         adjust_args_camel_to_snake(\%args);

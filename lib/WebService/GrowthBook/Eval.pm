@@ -78,7 +78,6 @@ sub eval_and {
     return 1;  # True
 }
 
-# TODO turn 1 and 0 to json true and false
 
 sub eval_condition_value {
     my ($condition_value, $attribute_value) = @_;
