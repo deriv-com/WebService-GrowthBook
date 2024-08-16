@@ -4,7 +4,7 @@ use Test::Warnings;
 use Test::More;
 use WebService::GrowthBook;
 use WebService::GrowthBook::Eval qw(eval_condition);
-use WebService::GrowthBook::Util qw(gbhash get_bucket_ranges choose_variation get_query_string_override);
+use WebService::GrowthBook::Util qw(gbhash get_bucket_ranges choose_variation get_query_string_override in_namespace);
 use JSON::MaybeUTF8 qw(decode_json_text);
 use Path::Tiny;
 use FindBin qw($Bin);
@@ -26,6 +26,7 @@ test_feature($test_cases->{feature});
 test_run($test_cases->{run});
 test_choose_variation($test_cases->{chooseVariation});
 test_get_query_string_override($test_cases->{getQueryStringOverride});
+test_in_namespace($test_cases->{inNamespace});
 done_testing;
 
 sub test_version_compare{
@@ -107,5 +108,13 @@ sub test_get_query_string_override{
     for my $case ($cases->@*){
         my ($name, $id, $url, $num_variations, $expected) = $case->@*;
         is_deeply(get_query_string_override($id, $url, $num_variations), $expected, $name);
+    }
+}
+
+sub test_in_namespace{
+    my $cases = shift;
+    for my $case ($cases->@*){
+        my ($name, $id, $namespace, $expected) = $case->@*;
+        is(in_namespace($id, $namespace), $expected, $name);
     }
 }
