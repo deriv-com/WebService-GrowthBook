@@ -5,6 +5,7 @@ use warnings;
 no indirect;
 use Object::Pad;
 
+## VERSION
 
 class WebService::GrowthBook::Result{
     field $variation_id :param :reader;

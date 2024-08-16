@@ -7,6 +7,9 @@ use Scalar::Util qw(looks_like_number);
 use Data::Dumper;
 use Syntax::Keyword::Try;
 use JSON::MaybeXS qw(is_bool);
+
+## VERSION
+
 our @EXPORT_OK = qw(eval_condition);
 
 sub eval_condition {

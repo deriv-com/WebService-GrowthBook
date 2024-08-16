@@ -5,6 +5,8 @@ use warnings;
 use WebService::GrowthBook::Util qw(adjust_args_camel_to_snake);
 use Object::Pad;
 
+## VERSION
+
 class WebService::GrowthBook::Experiment {
     field $key :param :reader;
     field $variations :param :reader //= [];

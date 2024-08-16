@@ -4,6 +4,9 @@ use warnings;
 no indirect;
 use WebService::GrowthBook::Util qw(adjust_args_camel_to_snake);
 use Object::Pad;
+
+## VERSION
+
 # TODO check every class's feild if they are camelCase or snake_case
 class WebService::GrowthBook::FeatureRule {
     field $id :param :reader //= undef;
