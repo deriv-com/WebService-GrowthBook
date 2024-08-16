@@ -8,7 +8,6 @@ use JSON::MaybeXS;
 
 ## VERSION
 
-# TODO change id to feature_id
 class WebService::GrowthBook::FeatureResult{
     field $feature_id :param :reader;
     field $value :param :reader;
