@@ -4,7 +4,7 @@ use Test::Warnings;
 use Test::More;
 use WebService::GrowthBook;
 use WebService::GrowthBook::Eval qw(eval_condition);
-use WebService::GrowthBook::Util qw(gbhash get_bucket_ranges);
+use WebService::GrowthBook::Util qw(gbhash get_bucket_ranges choose_variation);
 use JSON::MaybeUTF8 qw(decode_json_text);
 use Path::Tiny;
 use FindBin qw($Bin);
@@ -24,6 +24,7 @@ test_hash($test_cases->{hash});
 test_get_bucket_range($test_cases->{getBucketRange});
 test_feature($test_cases->{feature});
 test_run($test_cases->{run});
+test_choose_variation($test_cases->{chooseVariation});
 done_testing;
 
 sub test_version_compare{
@@ -88,5 +89,14 @@ sub test_run{
         is_deeply($res->value, $value, "$name value");
         is_deeply($res->in_experiment, $in_experiment, "$name in_experiment");
         is_deeply($res->hash_used, $hash_used, "$name hash_used");
+    }
+}
+
+sub test_choose_variation{
+    my $cases = shift;
+    for my $case ($cases->@*){
+        my ($name, $n, $range, $expected) = $case->@*;
+        my $result = choose_variation($n, $range);
+        is($result, $expected, $name);
     }
 }
