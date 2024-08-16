@@ -143,10 +143,10 @@ sub is_operator_object {
 
 sub compare {
     my ($va, $vb) = @_;
-    if(looks_like_number($va) && not defined($vb)){
+    if(looks_like_number($va) && ! defined($vb)){
         $vb = 0;
     }
-    if(looks_like_number($vb) && not defined($va)){
+    if(looks_like_number($vb) && ! defined($va)){
         $va = 0;
     }
     if(looks_like_number($va) && looks_like_number($vb)){
