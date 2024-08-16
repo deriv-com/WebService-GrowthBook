@@ -272,7 +272,7 @@ class WebService::GrowthBook {
         }
     }
 
-    method _run($experiment, $feature_id){
+    method _run($experiment, $feature_id = undef){
         # 1. If experiment has less than 2 variations, return immediately
         if (scalar @{$experiment->variations} < 2) {
             $log->warnf(
@@ -397,7 +397,7 @@ class WebService::GrowthBook {
             }
 
             # 8. Exclude if condition is false
-            if ($experiment->condition && !_eval_condition($self->attributes, $experiment->condition)) {
+            if ($experiment->condition && !eval_condition($self->attributes, $experiment->condition)) {
                 $log->debugf(
                     "Skip experiment %s because user failed the condition", $experiment->key
                 );
@@ -501,7 +501,7 @@ class WebService::GrowthBook {
                 "Force variation %d in experiment %s", $experiment->force, $experiment->key
             );
             return $self->_get_experiment_result(
-                $experiment, feature_id => $feature_id
+                $experiment, feature_id => $feature_id, variation_id => $experiment->force
             );
         }
 
@@ -836,6 +836,12 @@ class WebService::GrowthBook {
         return $fallback unless defined($result->value);
         return $result->value;
     }
+
+    method run($experiment){
+        my $result = $self->_run($experiment);
+        $self->_fire_subscriptions($experiment, $result);
+        return $result;
+    }    
 }
 
 =head1 METHODS

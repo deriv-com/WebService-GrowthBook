@@ -23,7 +23,7 @@ test_version_compare($version_compare_cases);
 test_hash($test_cases->{hash});
 test_get_bucket_range($test_cases->{getBucketRange});
 test_feature($test_cases->{feature});
-ok(1);
+test_run($test_cases->{run});
 done_testing;
 
 sub test_version_compare{
@@ -76,5 +76,17 @@ sub test_feature{
             $expected->{experiment} = WebService::GrowthBook::Experiment->new(%{$expected->{experiment}})->to_hash;
         }
         is_deeply($res->to_hash, $expected, $name);
+    }
+}
+
+sub test_run{
+    my $cases = shift;
+    for my $case ($cases->@*){
+        my ($name, $ctx, $exp, $value, $in_experiment, $hash_used) = $case->@*;
+        my $gb = WebService::GrowthBook->new(%$ctx);
+        my $res = $gb->run(WebService::GrowthBook::Experiment->new(%$exp));
+        is_deeply($res->value, $value, "$name value");
+        is_deeply($res->in_experiment, $in_experiment, "$name in_experiment");
+        is_deeply($res->hash_used, $hash_used, "$name hash_used");
     }
 }
