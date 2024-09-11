@@ -19,7 +19,7 @@ use WebService::GrowthBook::Util qw(gbhash in_range get_query_string_override ge
 use WebService::GrowthBook::Experiment;
 use WebService::GrowthBook::Result;
 
-our $VERSION = '0.003';
+our $VERSION = '0.004';
 
 =head1 NAME
 
