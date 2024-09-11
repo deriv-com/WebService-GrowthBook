@@ -66,6 +66,13 @@ evaluate a feature to get the value
 
     $instance->eval_feature('feature_name');
 
+## set\_attributes
+
+set attributes (can be set when creating gb object) and evaluate features
+
+    $instance->set_attributes({attr1 => 'value1', attr2 => 'value2'});
+    $instance->eval_feature('feature_name');
+
 # SEE ALSO
 
 - [https://docs.growthbook.io/](https://docs.growthbook.io/)

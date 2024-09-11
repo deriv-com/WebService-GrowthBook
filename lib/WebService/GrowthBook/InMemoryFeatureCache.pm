@@ -29,7 +29,7 @@ class WebService::GrowthBook::InMemoryFeatureCache :isa(WebService::GrowthBook::
     method clear(){
         %cache = ();
     }
-    
+
     sub singleton($class){
         state $instance = $class->new();
         return $instance;

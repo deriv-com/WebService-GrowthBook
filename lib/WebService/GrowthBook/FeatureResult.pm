@@ -9,18 +9,32 @@ use JSON::MaybeXS;
 ## VERSION
 
 class WebService::GrowthBook::FeatureResult{
-    field $id :param :reader;
+    field $feature_id :param :reader;
     field $value :param :reader;
+    field $source :param :reader //= '';
+    field $experiment :param //= undef;
+    field $experiment_result :param //= undef;
+    field $rule_id :param //= undef;
+
     method on{
-        if (JSON::MaybeXS::is_bool($value)){
-            return $value ? 1 : 0;
-        }
-        $log->errorf("FeatureResult->on/off called on non-boolean feature %s", $id);
-        return undef;
+        return $value ? 1 : 0;
     }
     method off{
         my $result = $self->on;
-        return $result unless defined($result);
         return $result ? 0 : 1;
+    }
+
+    method to_hash {
+        my %data = (
+            value => $value,
+            source => $source,
+            on => $self->on,
+            off => $self->off,
+        );
+
+        $data{ruleId} = $rule_id if defined $rule_id;
+        $data{experiment} = $experiment->to_hash() if defined $experiment;
+        $data{experimentResult} = $experiment_result->to_hash() if defined $experiment_result;
+        return \%data;
     }
 }

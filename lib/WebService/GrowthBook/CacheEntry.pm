@@ -16,7 +16,7 @@ class WebService::GrowthBook::CacheEntry {
       method update($new_value){
           $value = $new_value;
           $expires = time() + $ttl;
-      } 
+      }
       method expired(){
           return $expires < time();
       }
